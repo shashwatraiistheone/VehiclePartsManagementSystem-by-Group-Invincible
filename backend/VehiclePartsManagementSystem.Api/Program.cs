@@ -37,7 +37,6 @@ namespace VehiclePartsManagementSystem.Api
             builder.Services.AddScoped<IPartService, PartService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IPurchaseService, PurchaseService>();
-            builder.Services.AddScoped<IVendorService, VendorService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ISalesService, SalesService>();
             builder.Services.AddScoped<IReportService, ReportService>();

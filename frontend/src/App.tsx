@@ -6,9 +6,6 @@ import PartsPage from './pages/PartsPage'
 // @ts-expect-error - CustomerList is plain JSX by design (no extra libs)
 import CustomerList from './CustomerList.jsx'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error - Vendor page is plain JSX by design (no extra libs)
-import VendorPage from './pages/VendorPage.jsx'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error - Register page is plain JSX by design (no extra libs)
 import Register from './pages/Register.jsx'
 
@@ -21,7 +18,6 @@ export default function App() {
     return (
       <>
         <CustomerList />
-        <VendorPage />
         <PartsPage onLogout={() => setAuthed(false)} />
       </>
     )
