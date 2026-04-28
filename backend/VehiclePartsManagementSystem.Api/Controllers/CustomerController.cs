@@ -26,8 +26,22 @@ namespace VehiclePartsManagementSystem.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Customer>> Create(CustomerDto dto)
         {
-            var customer = await _customerService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetAll), null, customer);
+            try
+            {
+                var customer = await _customerService.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetAll), null, customer);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<List<Customer>>> SearchByName([FromQuery] string name)
+        {
+            var customers = await _customerService.SearchByNameAsync(name ?? string.Empty);
+            return Ok(customers);
         }
     }
 }

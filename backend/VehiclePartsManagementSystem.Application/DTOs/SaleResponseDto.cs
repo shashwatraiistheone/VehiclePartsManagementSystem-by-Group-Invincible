@@ -10,6 +10,13 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public decimal Price { get; set; }
     }
 
+    public class SaleInvoiceResponseDto
+    {
+        public int Id { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public DateTime CreatedDate { get; set; }
+    }
+
     public class SaleResponseDto
     {
         public int Id { get; set; }
@@ -18,8 +25,11 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public DateTime Date { get; set; }
         public decimal TotalAmount { get; set; }
         public List<SaleItemResponseDto> Items { get; set; } = new();
+
         public int InvoiceId { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateTime InvoiceCreatedDate { get; set; }
+
+        public SaleInvoiceResponseDto? Invoice { get; set; }
     }
 }

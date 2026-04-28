@@ -22,7 +22,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
         {
             if (dto.Items == null || dto.Items.Count == 0)
             {
-                throw new InvalidOperationException("At least one sale item is required.");
+                throw new InvalidOperationException("At least one sale item is required");
             }
 
             var customer = await _db.Customers.FindAsync(dto.CustomerId);
@@ -43,7 +43,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             {
                 if (item.Quantity <= 0)
                 {
-                    throw new InvalidOperationException("Invalid quantity");
+                    throw new InvalidOperationException("Quantity must be greater than 0");
                 }
 
                 var part = await _db.Parts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.PartId);
@@ -133,6 +133,17 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
         private static SaleResponseDto MapToResponse(Sale sale)
         {
             var invoice = sale.Invoice;
+            SaleInvoiceResponseDto? invoiceDto = null;
+            if (invoice != null)
+            {
+                invoiceDto = new SaleInvoiceResponseDto
+                {
+                    Id = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    CreatedDate = invoice.CreatedDate
+                };
+            }
+
             return new SaleResponseDto
             {
                 Id = sale.Id,
@@ -148,7 +159,8 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 }).ToList(),
                 InvoiceId = invoice?.Id ?? 0,
                 InvoiceNumber = invoice?.InvoiceNumber ?? string.Empty,
-                InvoiceCreatedDate = invoice?.CreatedDate ?? default
+                InvoiceCreatedDate = invoice?.CreatedDate ?? default,
+                Invoice = invoiceDto
             };
         }
     }

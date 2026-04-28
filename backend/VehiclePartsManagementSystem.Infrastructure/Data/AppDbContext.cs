@@ -10,7 +10,6 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         }
 
         public DbSet<Part> Parts => Set<Part>();
-        public DbSet<Vendor> Vendors => Set<Vendor>();
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<User> Users => Set<User>();
         public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
@@ -25,6 +24,10 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
 
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
                 .IsUnique();
 
             modelBuilder.Entity<PurchaseInvoice>()

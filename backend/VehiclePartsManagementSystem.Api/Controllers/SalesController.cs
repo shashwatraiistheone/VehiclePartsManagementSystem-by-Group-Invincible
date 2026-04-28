@@ -21,7 +21,7 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             try
             {
                 var created = await _salesService.CreateSaleAsync(dto);
-                return Ok(created);
+                return CreatedAtAction(nameof(GetAll), null, created);
             }
             catch (InvalidOperationException ex)
             {
