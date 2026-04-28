@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error - CustomerHistory is plain JSX by design (no extra libs)
+import CustomerHistory from './pages/CustomerHistory.jsx'
 
 export default function CustomerList() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -104,6 +108,7 @@ export default function CustomerList() {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Phone</th>
+                  <th>History</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,12 +117,27 @@ export default function CustomerList() {
                     <td>{c.name}</td>
                     <td>{c.email}</td>
                     <td>{c.phone}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCustomerId(c.id)}
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : null}
         </div>
+
+        {selectedCustomerId ? (
+          <CustomerHistory
+            customerId={selectedCustomerId}
+            onClose={() => setSelectedCustomerId(null)}
+          />
+        ) : null}
       </div>
     </div>
   )

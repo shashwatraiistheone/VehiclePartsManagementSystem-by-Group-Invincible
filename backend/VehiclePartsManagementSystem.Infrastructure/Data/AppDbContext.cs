@@ -17,6 +17,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         public DbSet<Sale> Sales => Set<Sale>();
         public DbSet<SaleItem> SaleItems => Set<SaleItem>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
+        public DbSet<ServiceAppointment> ServiceAppointments => Set<ServiceAppointment>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +66,12 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
                 .WithOne(i => i.Sale)
                 .HasForeignKey<Invoice>(i => i.SaleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ServiceAppointment>()
+                .HasOne(a => a.Customer)
+                .WithMany(c => c.ServiceAppointments)
+                .HasForeignKey(a => a.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.InvoiceNumber)
