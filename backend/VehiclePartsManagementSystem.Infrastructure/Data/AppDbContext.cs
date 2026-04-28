@@ -27,6 +27,10 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
+
             modelBuilder.Entity<PurchaseInvoice>()
                 .HasMany(p => p.Items)
                 .WithOne(i => i.PurchaseInvoice)

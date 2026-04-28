@@ -6,6 +6,7 @@ namespace VehiclePartsManagementSystem.Application.Interfaces
     public interface ICustomerService
     {
         Task<List<Customer>> GetAllAsync();
+        Task<List<Customer>> SearchByNameAsync(string name);
         Task<Customer> CreateAsync(CustomerDto dto);
     }
 }
