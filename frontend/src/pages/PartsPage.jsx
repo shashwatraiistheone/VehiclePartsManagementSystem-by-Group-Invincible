@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addPart, clearToken, getParts, getToken, type Part } from '../api'
+import { addPart, clearToken, getParts, getToken } from '../api'
 
-export default function PartsPage(props: { onLogout: () => void }) {
+export default function PartsPage(props) {
   const token = useMemo(() => getToken(), [])
 
-  const [parts, setParts] = useState<Part[]>([])
+  const [parts, setParts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
 
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [price, setPrice] = useState('1')
   const [quantity, setQuantity] = useState('1')
 
@@ -20,7 +19,7 @@ export default function PartsPage(props: { onLogout: () => void }) {
     try {
       const data = await getParts(token)
       setParts(data)
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message ?? 'Failed to load parts')
     } finally {
       setLoading(false)
@@ -32,23 +31,21 @@ export default function PartsPage(props: { onLogout: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function onAdd(e: React.FormEvent) {
+  async function onAdd(e) {
     e.preventDefault()
     if (!token) return
     setError(null)
     try {
       await addPart(token, {
         name,
-        description,
         price: Number(price),
         quantity: Number(quantity),
       })
       setName('')
-      setDescription('')
       setPrice('1')
       setQuantity('1')
       await load()
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message ?? 'Failed to add part')
     }
   }
@@ -61,7 +58,7 @@ export default function PartsPage(props: { onLogout: () => void }) {
   return (
     <div className="page">
       <div className="header">
-        <h2>Parts</h2>
+        <h2>Vehicle Parts Management</h2>
         <button onClick={logout}>Logout</button>
       </div>
 
@@ -69,18 +66,11 @@ export default function PartsPage(props: { onLogout: () => void }) {
 
       <div className="grid">
         <div className="card">
-          <h3>Add Part</h3>
+          <h3>Add New Part</h3>
           <form className="form" onSubmit={onAdd}>
             <label>
-              Name
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <label>
-              Description
-              <input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
+              Part Name
+              <input value={name} onChange={(e) => setName(e.target.value)} required />
             </label>
             <label>
               Price
@@ -90,6 +80,7 @@ export default function PartsPage(props: { onLogout: () => void }) {
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                required
               />
             </label>
             <label>
@@ -100,25 +91,26 @@ export default function PartsPage(props: { onLogout: () => void }) {
                 step="1"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+                required
               />
             </label>
-            <button>Add</button>
+            <button type="submit">Add Part</button>
           </form>
         </div>
 
         <div className="card">
-          <h3>List</h3>
-          {loading ? <p>Loading…</p> : null}
-          {!loading && parts.length === 0 ? <p>No parts yet.</p> : null}
+          <h3>Parts Inventory</h3>
+          {loading ? <p>Loading inventory…</p> : null}
+          {!loading && parts.length === 0 ? <p>No parts in inventory yet.</p> : null}
 
           {parts.length ? (
             <table className="table">
               <thead>
                 <tr>
-                  <th>Id</th>
+                  <th>ID</th>
                   <th>Name</th>
-                  <th>Qty</th>
                   <th>Price</th>
+                  <th>Quantity</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,8 +118,8 @@ export default function PartsPage(props: { onLogout: () => void }) {
                   <tr key={p.id}>
                     <td>{p.id}</td>
                     <td>{p.name}</td>
+                    <td>${Number(p.price).toFixed(2)}</td>
                     <td>{p.quantity}</td>
-                    <td>{p.price}</td>
                   </tr>
                 ))}
               </tbody>
@@ -138,4 +130,3 @@ export default function PartsPage(props: { onLogout: () => void }) {
     </div>
   )
 }
-

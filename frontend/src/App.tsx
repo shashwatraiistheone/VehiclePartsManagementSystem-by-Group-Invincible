@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { getToken } from './api'
 import LoginPage from './pages/LoginPage'
-import PartsPage from './pages/PartsPage'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error - PartsPage is plain JSX
+import PartsPage from './pages/PartsPage.jsx'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error - CustomerList is plain JSX by design (no extra libs)
 import CustomerList from './CustomerList.jsx'
