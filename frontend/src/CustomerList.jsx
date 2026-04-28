@@ -3,6 +3,15 @@ import { useEffect, useState } from 'react'
 // @ts-expect-error - CustomerHistory is plain JSX by design (no extra libs)
 import CustomerHistory from './pages/CustomerHistory.jsx'
 
+function safeJson(text) {
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export default function CustomerList() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -20,7 +29,12 @@ export default function CustomerList() {
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL
       const res = await fetch(`${apiBase}/api/customer`)
-      const data = await res.json()
+      const text = await res.text()
+      const data = safeJson(text)
+
+      if (!res.ok) {
+        throw new Error(data?.message || data?.title || 'Failed to load customers')
+      }
       setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err?.message ?? 'Failed to load customers')
@@ -47,7 +61,7 @@ export default function CustomerList() {
       })
 
       const text = await res.text()
-      const data = text ? JSON.parse(text) : null
+      const data = safeJson(text)
 
       if (!res.ok) {
         throw new Error(data?.message || data?.title || 'Failed to add customer')

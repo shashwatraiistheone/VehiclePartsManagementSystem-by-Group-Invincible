@@ -12,6 +12,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         public DbSet<Part> Parts => Set<Part>();
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<User> Users => Set<User>();
+        public DbSet<Vendor> Vendors => Set<Vendor>();
         public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
         public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
         public DbSet<Sale> Sales => Set<Sale>();
