@@ -16,24 +16,19 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
         public async Task<ReportDto> GetDashboardAsync()
         {
-            var totalCustomers = await _db.Customers.CountAsync();
-            var totalSales = await _db.Sales.CountAsync();
-            var totalPurchases = await _db.PurchaseInvoices.CountAsync();
-            var totalRevenue = await _db.Sales.SumAsync(s => (decimal?)s.TotalAmount) ?? 0m;
+            var totalCustomersTask = _db.Customers.CountAsync();
+            var totalSalesTask = _db.Sales.CountAsync();
+            var totalRevenueTask = _db.Sales.SumAsync(s => (decimal?)s.TotalAmount);
+            var lowStockPartsCountTask = _db.Parts.CountAsync(p => p.Quantity < 5);
 
-            var lowStockParts = await _db.Parts
-                .Where(p => p.Quantity < 5)
-                .OrderBy(p => p.Quantity)
-                .ThenBy(p => p.Name)
-                .ToListAsync();
+            await Task.WhenAll(totalCustomersTask, totalSalesTask, totalRevenueTask, lowStockPartsCountTask);
 
             return new ReportDto
             {
-                TotalCustomers = totalCustomers,
-                TotalSales = totalSales,
-                TotalPurchases = totalPurchases,
-                TotalRevenue = totalRevenue,
-                LowStockParts = lowStockParts
+                TotalCustomers = await totalCustomersTask,
+                TotalSales = await totalSalesTask,
+                TotalRevenue = await totalRevenueTask ?? 0m,
+                LowStockPartsCount = await lowStockPartsCountTask
             };
         }
     }

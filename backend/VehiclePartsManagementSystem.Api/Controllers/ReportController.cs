@@ -5,7 +5,7 @@ using VehiclePartsManagementSystem.Application.Interfaces;
 namespace VehiclePartsManagementSystem.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/report")]
     public class ReportController : ControllerBase
     {
         private readonly IReportService _reportService;
