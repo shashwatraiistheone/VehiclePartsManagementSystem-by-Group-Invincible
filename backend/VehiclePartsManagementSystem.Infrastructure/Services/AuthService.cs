@@ -26,11 +26,18 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+            var normalizedUsername = dto.Username.Trim().ToLowerInvariant();
 
-            var exists = await _db.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail);
-            if (exists)
+            var emailExists = await _db.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail);
+            if (emailExists)
             {
                 throw new InvalidOperationException("Email already exists.");
+            }
+
+            var usernameExists = await _db.Users.AnyAsync(u => u.Username.ToLower() == normalizedUsername);
+            if (usernameExists)
+            {
+                throw new InvalidOperationException("Username already exists.");
             }
 
             if (!Enum.TryParse<UserRole>(dto.Role, ignoreCase: true, out var role))
@@ -40,7 +47,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
             var user = new User
             {
-                Name = dto.Name.Trim(),
+                Username = dto.Username.Trim(),
                 Email = dto.Email.Trim(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Role = role,
@@ -97,7 +104,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email),
                 new(ClaimTypes.Role, user.Role.ToString()),
-                new("name", user.Name)
+                new("username", user.Username)
             };
 
             var expiresMinutes = 60;

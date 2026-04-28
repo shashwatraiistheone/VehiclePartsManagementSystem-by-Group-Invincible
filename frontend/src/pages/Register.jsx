@@ -10,7 +10,7 @@ function safeJson(text) {
 }
 
 export default function Register(props) {
-  const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('Staff')
@@ -28,7 +28,7 @@ export default function Register(props) {
       const res = await fetch(`${apiBase}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ username, email, password, role }),
       })
 
       const text = await res.text()
@@ -54,8 +54,8 @@ export default function Register(props) {
 
         <form className="form" onSubmit={onSubmit}>
           <label>
-            Name
-            <input value={name} onChange={(e) => setName(e.target.value)} />
+            Username
+            <input value={username} onChange={(e) => setUsername(e.target.value)} />
           </label>
 
           <label>
