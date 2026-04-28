@@ -1,32 +1,68 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
-using VehiclePartsManagementSystem.Application.DTOs;
-using VehiclePartsManagementSystem.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using VehiclePartsManagementSystem.Domain.Entities;
+using VehiclePartsManagementSystem.Infrastructure.Data;
 
 namespace VehiclePartsManagementSystem.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/vendor")]
     public class VendorController : ControllerBase
     {
-        private readonly IVendorService _vendorService;
+        private readonly AppDbContext _db;
 
-        public VendorController(IVendorService vendorService)
+        public VendorController(AppDbContext db)
         {
-            _vendorService = vendorService;
+            _db = db;
         }
 
         [HttpGet]
         public async Task<ActionResult<List<Vendor>>> GetAll()
         {
-            var vendors = await _vendorService.GetAllAsync();
+            var vendors = await _db.Vendors
+                .OrderByDescending(v => v.Id)
+                .ToListAsync();
+
             return Ok(vendors);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<Vendor>> Create(VendorDto dto)
+        public sealed class CreateVendorRequest
         {
-            var vendor = await _vendorService.CreateAsync(dto);
+            [Required]
+            public string Name { get; set; } = string.Empty;
+
+            [Required]
+            public string Email { get; set; } = string.Empty;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Vendor>> Create([FromBody] CreateVendorRequest body)
+        {
+            var name = body.Name?.Trim() ?? string.Empty;
+            var email = body.Email?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return BadRequest(new { message = "Vendor name is required." });
+            }
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new { message = "Vendor email is required." });
+            }
+
+            var vendor = new Vendor
+            {
+                Name = name,
+                Email = email,
+                Contact = string.Empty,
+                Address = string.Empty
+            };
+
+            await _db.Vendors.AddAsync(vendor);
+            await _db.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetAll), null, vendor);
         }
     }
