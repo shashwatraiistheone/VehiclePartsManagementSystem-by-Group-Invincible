@@ -85,3 +85,30 @@ export async function addPart(token: string, part: CreatePart) {
   })
 }
 
+export interface Vendor {
+  id: number;
+  name: string;
+  email: string;
+  contact?: string;
+  address?: string;
+}
+
+export interface CreateVendor {
+  name: string;
+  email: string;
+  contact?: string;
+  address?: string;
+}
+
+export async function getVendors(token: string) {
+  return await request<Vendor[]>('/api/vendor', { token })
+}
+
+export async function addVendor(token: string, vendor: CreateVendor) {
+  return await request<Vendor>('/api/vendor', {
+    method: 'POST',
+    token,
+    body: vendor,
+  })
+}
+
