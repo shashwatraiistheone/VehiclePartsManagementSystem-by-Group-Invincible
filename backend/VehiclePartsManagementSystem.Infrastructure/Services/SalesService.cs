@@ -9,6 +9,9 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 {
     public class SalesService : ISalesService
     {
+        private const decimal LoyaltyThreshold = 5000m;
+        private const decimal LoyaltyDiscountRate = 0.10m;
+
         private readonly AppDbContext _db;
         private readonly ILogger<SalesService> _logger;
 
@@ -69,7 +72,13 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 });
             }
 
-            sale.TotalAmount = sale.Items.Sum(i => i.Price * i.Quantity);
+            var originalTotal = sale.Items.Sum(i => i.Price * i.Quantity);
+            var discount = originalTotal >= LoyaltyThreshold ? (originalTotal * LoyaltyDiscountRate) : 0m;
+            var finalTotal = originalTotal - discount;
+
+            sale.OriginalTotalAmount = originalTotal;
+            sale.DiscountAmount = discount;
+            sale.TotalAmount = finalTotal;
 
             await _db.Sales.AddAsync(sale);
             await _db.SaveChangesAsync();
@@ -91,10 +100,12 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             sale.Customer = customer;
 
             _logger.LogInformation(
-                "Sale {SaleId} created for customer {CustomerId} ({CustomerName}), total {TotalAmount}, line items {ItemCount}",
+                "Sale {SaleId} created for customer {CustomerId} ({CustomerName}), original {OriginalTotal}, discount {Discount}, final {FinalTotal}, line items {ItemCount}",
                 sale.Id,
                 customer.Id,
                 customer.Name,
+                sale.OriginalTotalAmount,
+                sale.DiscountAmount,
                 sale.TotalAmount,
                 sale.Items.Count);
 
@@ -150,7 +161,9 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 CustomerId = sale.CustomerId,
                 CustomerName = sale.Customer?.Name ?? string.Empty,
                 Date = sale.Date,
-                TotalAmount = sale.TotalAmount,
+                TotalAmount = sale.OriginalTotalAmount,
+                Discount = sale.DiscountAmount,
+                FinalAmount = sale.TotalAmount,
                 Items = sale.Items.Select(i => new SaleItemResponseDto
                 {
                     PartId = i.PartId,

@@ -24,6 +24,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public string CustomerName { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public decimal TotalAmount { get; set; }
+        public decimal Discount { get; set; }
+        public decimal FinalAmount { get; set; }
         public List<SaleItemResponseDto> Items { get; set; } = new();
 
         public int InvoiceId { get; set; }

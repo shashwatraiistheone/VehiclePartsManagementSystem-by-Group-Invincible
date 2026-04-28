@@ -44,7 +44,9 @@ namespace VehiclePartsManagementSystem.Api.Controllers
                 {
                     SaleId = s.Id,
                     Date = s.Date.ToString("O"),
-                    TotalAmount = s.TotalAmount,
+                    TotalAmount = s.OriginalTotalAmount,
+                    Discount = s.DiscountAmount,
+                    FinalAmount = s.TotalAmount,
                     Items = s.Items.Select(i => new PurchaseItemHistoryDto
                     {
                         PartId = i.PartId,
