@@ -12,6 +12,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public int SaleId { get; set; }
         public string Date { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
+        public decimal Discount { get; set; }
+        public decimal FinalAmount { get; set; }
         public List<PurchaseItemHistoryDto> Items { get; set; } = new();
     }
 

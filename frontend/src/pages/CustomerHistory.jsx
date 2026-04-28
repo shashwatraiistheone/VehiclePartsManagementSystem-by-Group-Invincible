@@ -66,9 +66,28 @@ export default function CustomerHistory(props) {
                       <strong>Sale #{p.saleId}</strong>
                       <span>{new Date(p.date).toLocaleString()}</span>
                     </div>
-                    <p style={{ margin: '6px 0 0' }}>
-                      Total: <strong>{p.totalAmount}</strong>
-                    </p>
+                    <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
+                      <div>
+                        Total: <strong>{p.totalAmount}</strong>
+                      </div>
+                      {p.discount ? (
+                        <>
+                          <div style={{ color: '#15803d' }}>
+                            Discount: <strong>-{p.discount}</strong>
+                          </div>
+                          <div>
+                            Final: <strong>{p.finalAmount}</strong>
+                          </div>
+                          <p style={{ margin: 0, color: '#15803d' }}>
+                            You received a 10% loyalty discount
+                          </p>
+                        </>
+                      ) : (
+                        <div>
+                          Final: <strong>{p.totalAmount}</strong>
+                        </div>
+                      )}
+                    </div>
 
                     {p.items?.length ? (
                       <table className="table" style={{ marginTop: 8 }}>
