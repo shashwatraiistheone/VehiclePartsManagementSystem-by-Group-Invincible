@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using VehiclePartsManagementSystem.Application.DTOs;
 using VehiclePartsManagementSystem.Application.Interfaces;
 using VehiclePartsManagementSystem.Domain.Entities;
@@ -9,10 +10,12 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
     public class SalesService : ISalesService
     {
         private readonly AppDbContext _db;
+        private readonly ILogger<SalesService> _logger;
 
-        public SalesService(AppDbContext db)
+        public SalesService(AppDbContext db, ILogger<SalesService> logger)
         {
             _db = db;
+            _logger = logger;
         }
 
         public async Task<SaleResponseDto> CreateSaleAsync(CreateSaleDto dto)
@@ -23,7 +26,10 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             }
 
             var customer = await _db.Customers.FindAsync(dto.CustomerId);
-            if (customer == null) throw new InvalidOperationException($"Customer not found: {dto.CustomerId}");
+            if (customer == null)
+            {
+                throw new InvalidOperationException("Customer not found");
+            }
 
             await using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -35,17 +41,25 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
             foreach (var item in dto.Items)
             {
-                if (item.Quantity <= 0) throw new InvalidOperationException("Quantity must be greater than 0.");
-
-                var part = await _db.Parts.FindAsync(item.PartId);
-                if (part == null) throw new InvalidOperationException($"Part not found: {item.PartId}");
-                if (part.Quantity < item.Quantity)
+                if (item.Quantity <= 0)
                 {
-                    throw new InvalidOperationException(
-                        $"Insufficient stock for part '{part.Name}' (Id {part.Id}). Available: {part.Quantity}, requested: {item.Quantity}.");
+                    throw new InvalidOperationException("Invalid quantity");
                 }
 
-                part.Quantity -= item.Quantity;
+                var part = await _db.Parts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.PartId);
+                if (part == null)
+                {
+                    throw new InvalidOperationException("Part not found");
+                }
+
+                var rowsUpdated = await _db.Parts
+                    .Where(p => p.Id == item.PartId && p.Quantity >= item.Quantity)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Quantity, p => p.Quantity - item.Quantity));
+
+                if (rowsUpdated == 0)
+                {
+                    throw new InvalidOperationException("Insufficient stock");
+                }
 
                 sale.Items.Add(new SaleItem
                 {
@@ -75,6 +89,15 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
             sale.Invoice = invoice;
             sale.Customer = customer;
+
+            _logger.LogInformation(
+                "Sale {SaleId} created for customer {CustomerId} ({CustomerName}), total {TotalAmount}, line items {ItemCount}",
+                sale.Id,
+                customer.Id,
+                customer.Name,
+                sale.TotalAmount,
+                sale.Items.Count);
+
             return MapToResponse(sale);
         }
 
