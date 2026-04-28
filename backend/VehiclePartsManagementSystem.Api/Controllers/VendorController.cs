@@ -1,0 +1,39 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VehiclePartsManagementSystem.Domain.Entities;
+using VehiclePartsManagementSystem.Infrastructure.Data;
+
+namespace VehiclePartsManagementSystem.Api.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class VendorController : ControllerBase
+    {
+        private readonly AppDbContext _context;
+
+        public VendorController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors()
+        {
+            return await _context.Vendors.ToListAsync();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Vendor>> CreateVendor(Vendor vendor)
+        {
+            if (string.IsNullOrWhiteSpace(vendor.Name) || string.IsNullOrWhiteSpace(vendor.Email))
+            {
+                return BadRequest(new { message = "Name and Email are required." });
+            }
+
+            _context.Vendors.Add(vendor);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetVendors), new { id = vendor.Id }, vendor);
+        }
+    }
+}
