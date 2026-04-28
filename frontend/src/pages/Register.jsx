@@ -1,5 +1,14 @@
 import { useState } from 'react'
 
+function safeJson(text) {
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export default function Register(props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -23,7 +32,7 @@ export default function Register(props) {
       })
 
       const text = await res.text()
-      const data = text ? JSON.parse(text) : null
+      const data = safeJson(text)
 
       if (!res.ok) {
         throw new Error(data?.message || data?.title || 'Registration failed')
