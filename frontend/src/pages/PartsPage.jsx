@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addPart, clearToken, getParts, getToken } from '../api'
+import { addPart, getParts, getToken } from '../api'
 
-export default function PartsPage(props) {
+export default function PartsPage() {
   const token = useMemo(() => getToken(), [])
 
   const [parts, setParts] = useState([])
@@ -50,27 +50,22 @@ export default function PartsPage(props) {
     }
   }
 
-  function logout() {
-    clearToken()
-    props.onLogout()
-  }
-
   return (
     <div className="page">
-      <div className="header">
-        <h2>Vehicle Parts Management</h2>
-        <button onClick={logout}>Logout</button>
+      <div className="page-head">
+        <h2>Parts</h2>
+        <p>Add catalogue items and monitor stock.</p>
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error" style={{ marginBottom: 16 }}>{error}</p> : null}
 
       <div className="grid">
         <div className="card">
-          <h3>Add New Part</h3>
+          <h3>Add part</h3>
           <form className="form" onSubmit={onAdd}>
             <label>
-              Part Name
-              <input value={name} onChange={(e) => setName(e.target.value)} required />
+              Part name
+              <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Oil filter" />
             </label>
             <label>
               Price
@@ -94,36 +89,40 @@ export default function PartsPage(props) {
                 required
               />
             </label>
-            <button type="submit">Add Part</button>
+            <button type="submit">Add part</button>
           </form>
         </div>
 
         <div className="card">
-          <h3>Parts Inventory</h3>
-          {loading ? <p>Loading inventory…</p> : null}
-          {!loading && parts.length === 0 ? <p>No parts in inventory yet.</p> : null}
+          <h3>Inventory</h3>
+          {loading ? <div className="state-loading">Loading inventory…</div> : null}
+          {!loading && parts.length === 0 ? (
+            <div className="state-empty">No parts yet. Add your first item using the form.</div>
+          ) : null}
 
-          {parts.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Price</th>
-                  <th>Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parts.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.id}</td>
-                    <td>{p.name}</td>
-                    <td>${Number(p.price).toFixed(2)}</td>
-                    <td>{p.quantity}</td>
+          {parts.length > 0 ? (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Qty</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {parts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="muted">{p.id}</td>
+                      <td>{p.name}</td>
+                      <td>${Number(p.price).toFixed(2)}</td>
+                      <td>{p.quantity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </div>
       </div>

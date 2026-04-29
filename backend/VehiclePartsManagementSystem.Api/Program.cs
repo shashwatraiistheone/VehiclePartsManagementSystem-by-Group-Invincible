@@ -138,6 +138,61 @@ namespace VehiclePartsManagementSystem.Api
                 }
             }
 
+            // After migrations: legacy "Users"."Name" must be "Username" or EF LINQ emits u."Username"
+            // and PostgreSQL returns 42703.
+            try
+            {
+                using var alignScope = app.Services.CreateScope();
+                var alignDb = alignScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                alignDb.Database.ExecuteSqlRaw(
+                    """
+                    DO $$
+                    BEGIN
+                      IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'Users' AND column_name = 'Name'
+                      ) AND NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'Users' AND column_name = 'Username'
+                      ) THEN
+                        ALTER TABLE "Users" RENAME COLUMN "Name" TO "Username";
+                      END IF;
+                    END $$;
+                    """);
+                alignDb.Database.ExecuteSqlRaw(
+                    """
+                    DO $$
+                    BEGIN
+                      IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = 'Users' AND column_name = 'Username'
+                      ) THEN
+                        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Username" ON "Users" ("Username")';
+                      END IF;
+                    END $$;
+                    """);
+
+                // Vendors: some DBs only have Id/Name/Email; the entity expects Contact and Address (and Email).
+                alignDb.Database.ExecuteSqlRaw(
+                    """
+                    DO $$
+                    BEGIN
+                      IF EXISTS (
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = 'Vendors'
+                      ) THEN
+                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Email" text NOT NULL DEFAULT '';
+                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Contact" text NOT NULL DEFAULT '';
+                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT '';
+                      END IF;
+                    END $$;
+                    """);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Database schema alignment: {ex.Message}");
+            }
+
             app.UseExceptionHandler(errorApp =>
             {
                 errorApp.Run(async context =>
@@ -158,7 +213,11 @@ namespace VehiclePartsManagementSystem.Api
                 });
             });
 
-            app.UseHttpsRedirection();
+            // Dev profile is often HTTP-only; redirecting POST /api/Auth/login to HTTPS can break sign-in.
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseCors("AllowFrontend");
 

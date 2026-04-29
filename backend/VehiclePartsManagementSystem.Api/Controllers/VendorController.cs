@@ -30,6 +30,11 @@ namespace VehiclePartsManagementSystem.Api.Controllers
                 return BadRequest(new { message = "Name and Email are required." });
             }
 
+            vendor.Name = vendor.Name.Trim();
+            vendor.Email = vendor.Email.Trim();
+            vendor.Contact = string.IsNullOrWhiteSpace(vendor.Contact) ? string.Empty : vendor.Contact.Trim();
+            vendor.Address = string.IsNullOrWhiteSpace(vendor.Address) ? string.Empty : vendor.Address.Trim();
+
             _context.Vendors.Add(vendor);
             await _context.SaveChangesAsync();
 

@@ -34,7 +34,10 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 throw new InvalidOperationException("Email already exists.");
             }
 
-            var usernameExists = await _db.Users.AnyAsync(u => u.Username.ToLower() == normalizedUsername);
+            // Avoid u.Username.ToLower() in SQL: with some providers it can emit the wrong column name.
+            var takenNames = await _db.Users.Select(u => u.Username).ToListAsync();
+            var usernameExists = takenNames.Any(n =>
+                string.Equals(n?.Trim(), dto.Username.Trim(), StringComparison.OrdinalIgnoreCase));
             if (usernameExists)
             {
                 throw new InvalidOperationException("Username already exists.");
@@ -55,7 +58,23 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             };
 
             await _db.Users.AddAsync(user);
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                var inner = ex.InnerException?.Message ?? ex.Message;
+                if (inner.Contains("23505", StringComparison.Ordinal) ||
+                    inner.Contains("duplicate", StringComparison.OrdinalIgnoreCase) ||
+                    inner.Contains("IX_", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Email or username already exists.");
+                }
+
+                throw new InvalidOperationException(
+                    "Could not save the account. If the problem persists, the database schema for Users may be out of date.");
+            }
 
             return new AuthResponseDto
             {
@@ -67,15 +86,30 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var email = dto.Email.Trim();
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
             if (user == null)
             {
                 throw new InvalidOperationException("Invalid email or password.");
             }
 
-            var ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+            if (string.IsNullOrEmpty(user.PasswordHash))
+            {
+                throw new InvalidOperationException("Invalid email or password.");
+            }
+
+            bool ok;
+            try
+            {
+                ok = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+            }
+            catch
+            {
+                ok = false;
+            }
+
             if (!ok)
             {
                 throw new InvalidOperationException("Invalid email or password.");
@@ -99,12 +133,14 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var emailClaim = user.Email ?? string.Empty;
+            var nameClaim = user.Username ?? string.Empty;
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new(JwtRegisteredClaimNames.Email, user.Email),
+                new(JwtRegisteredClaimNames.Email, emailClaim),
                 new(ClaimTypes.Role, user.Role.ToString()),
-                new("username", user.Username)
+                new("username", nameClaim)
             };
 
             var expiresMinutes = 60;

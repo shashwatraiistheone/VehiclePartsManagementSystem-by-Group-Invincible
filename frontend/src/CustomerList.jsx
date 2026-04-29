@@ -28,7 +28,7 @@ export default function CustomerList() {
     setError(null)
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(`${apiBase}/api/customer`)
+      const res = await fetch(`${apiBase}/api/Customer`)
       const text = await res.text()
       const data = safeJson(text)
 
@@ -54,7 +54,7 @@ export default function CustomerList() {
     setSaving(true)
     try {
       const apiBase = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(`${apiBase}/api/customer`, {
+      const res = await fetch(`${apiBase}/api/Customer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, address: '' }),
@@ -79,81 +79,107 @@ export default function CustomerList() {
   }
 
   return (
-    <div className="page">
-      <div className="header">
-        <h2>Customers</h2>
-      </div>
-
-      {error ? <p className="error">{error}</p> : null}
-
-      <div className="grid">
-        <div className="card">
-          <h3>Add Customer</h3>
-          <form className="form" onSubmit={addCustomer}>
-            <label>
-              Name
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <label>
-              Email
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </label>
-            <label>
-              Phone
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </label>
-            <button disabled={saving}>{saving ? 'Adding…' : 'Add Customer'}</button>
-          </form>
+    <>
+      <div className="page">
+        <div className="page-head">
+          <h2>Customers</h2>
+          <p>Add records and open purchase & service history.</p>
         </div>
 
-        <div className="card">
-          <h3>Customer List</h3>
-          {loading ? <p>Loading…</p> : null}
-          {!loading && customers.length === 0 ? <p>No customers yet.</p> : null}
+        {error ? <p className="error" style={{ marginBottom: 16 }}>{error}</p> : null}
 
-          {customers.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>History</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((c) => (
-                  <tr key={c.id ?? `${c.name}-${c.email}`}>
-                    <td>{c.name}</td>
-                    <td>{c.email}</td>
-                    <td>{c.phone}</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCustomerId(c.id)}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : null}
+        <div className="grid">
+          <div className="card">
+            <h3>Add customer</h3>
+            <form className="form" onSubmit={addCustomer}>
+              <label>
+                Name
+                <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Full name" />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                  placeholder="email@example.com"
+                />
+              </label>
+              <label>
+                Phone
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 …" />
+              </label>
+              <button type="submit" disabled={saving}>
+                {saving ? 'Adding…' : 'Add customer'}
+              </button>
+            </form>
+          </div>
+
+          <div className="card">
+            <h3>Directory</h3>
+            {loading ? <div className="state-loading">Loading…</div> : null}
+            {!loading && customers.length === 0 ? (
+              <div className="state-empty">No customers yet.</div>
+            ) : null}
+
+            {customers.length > 0 ? (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th style={{ width: 100 }}>History</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customers.map((c) => (
+                      <tr key={c.id ?? `${c.name}-${c.email}`}>
+                        <td>{c.name}</td>
+                        <td>{c.email}</td>
+                        <td className="muted">{c.phone}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm"
+                            onClick={() => setSelectedCustomerId(c.id)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
         </div>
-
-        {selectedCustomerId ? (
-          <CustomerHistory
-            customerId={selectedCustomerId}
-            onClose={() => setSelectedCustomerId(null)}
-          />
-        ) : null}
       </div>
-    </div>
+
+      {selectedCustomerId != null ? (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setSelectedCustomerId(null)}
+        >
+          <div
+            className="modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CustomerHistory
+              customerId={selectedCustomerId}
+              onClose={() => setSelectedCustomerId(null)}
+            />
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
-

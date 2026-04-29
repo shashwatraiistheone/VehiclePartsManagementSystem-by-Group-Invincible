@@ -9,6 +9,17 @@ function safeJson(text) {
   }
 }
 
+function formatRegisterError(data) {
+  if (!data) return 'Registration failed'
+  if (data.message) return data.message
+  if (data.detail) return String(data.detail)
+  if (data.title && data.errors) {
+    const first = Object.values(data.errors)[0]
+    if (Array.isArray(first) && first[0]) return String(first[0])
+  }
+  return data.title || 'Registration failed'
+}
+
 export default function Register(props) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -35,10 +46,9 @@ export default function Register(props) {
       const data = safeJson(text)
 
       if (!res.ok) {
-        throw new Error(data?.message || data?.title || 'Registration failed')
+        throw new Error(formatRegisterError(data))
       }
 
-      alert('Registered successfully')
       props.onRegistered()
     } catch (err) {
       setError(err?.message ?? 'Registration failed')
@@ -48,19 +58,39 @@ export default function Register(props) {
   }
 
   return (
-    <div className="page">
-      <div className="card">
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-brand-mark" aria-hidden>
+            PH
+          </div>
+          <h1>PartsHub</h1>
+          <p>Create a staff or admin account</p>
+        </div>
         <h2>Register</h2>
 
         <form className="form" onSubmit={onSubmit}>
           <label>
             Username
-            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              placeholder="jane.smith"
+            />
           </label>
 
           <label>
             Email
-            <input value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="you@company.com"
+            />
           </label>
 
           <label>
@@ -69,6 +99,9 @@ export default function Register(props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              placeholder="••••••••"
             />
           </label>
 
@@ -82,19 +115,18 @@ export default function Register(props) {
 
           {error ? <p className="error">{error}</p> : null}
 
-          <button disabled={loading}>
-            {loading ? 'Registering…' : 'Register'}
+          <button type="submit" disabled={loading}>
+            {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
         <p className="hint">
-          Already have an account?{' '}
+          Already registered?{' '}
           <button type="button" className="linkBtn" onClick={props.onBackToLogin}>
-            Login
+            Sign in
           </button>
         </p>
       </div>
     </div>
   )
 }
-

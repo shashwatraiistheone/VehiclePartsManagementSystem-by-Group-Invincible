@@ -9,10 +9,12 @@ namespace VehiclePartsManagementSystem.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IWebHostEnvironment _environment;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IWebHostEnvironment environment)
         {
             _authService = authService;
+            _environment = environment;
         }
 
         [HttpPost("register")]
@@ -40,6 +42,16 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             catch (InvalidOperationException ex)
             {
                 return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "Sign-in failed.",
+                        detail = _environment.IsDevelopment() ? ex.Message : null,
+                    });
             }
         }
     }

@@ -41,8 +41,12 @@ async function request<T>(
   const data = text ? (JSON.parse(text) as unknown) : null
 
   if (!res.ok) {
+    const d = data as Record<string, unknown> | null
     const message =
-      (data as any)?.message || (data as any)?.title || 'Request failed'
+      (typeof d?.detail === 'string' && d.detail) ||
+      (typeof d?.message === 'string' && d.message) ||
+      (typeof d?.title === 'string' && d.title) ||
+      'Request failed'
     throw new Error(message)
   }
 

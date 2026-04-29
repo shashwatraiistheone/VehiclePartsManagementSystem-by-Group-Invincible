@@ -24,6 +24,13 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Some databases store Role as text ("Admin"/"Staff"); EF defaults to integer enum storage.
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => Enum.Parse<UserRole>(v, true));
+
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();

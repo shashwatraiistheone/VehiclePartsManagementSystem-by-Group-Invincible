@@ -1,0 +1,11 @@
+export type StaffViewId =
+  | 'home'
+  | 'dashboard'
+  | 'manage-customers'
+  | 'search-sale'
+  | 'register-customer'
+  | 'sales-history'
+  | 'credit-management'
+  | 'customer-reports'
+  | 'appointments'
+  | 'part-requests'

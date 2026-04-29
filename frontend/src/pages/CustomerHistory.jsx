@@ -43,105 +43,115 @@ export default function CustomerHistory(props) {
   }, [customerId])
 
   return (
-    <div className="card">
-      <div className="header" style={{ margin: 0 }}>
-        <h3>Customer History</h3>
-        <button type="button" onClick={onClose}>
+    <div className="modal-body">
+      <div className="header" style={{ marginBottom: 20 }}>
+        <h3 id="history-title" style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>
+          Customer history
+        </h3>
+        <button type="button" className="btn-ghost btn-sm" onClick={onClose}>
           Close
         </button>
       </div>
 
-      {loading ? <p>Loading…</p> : null}
+      {loading ? <div className="state-loading">Loading…</div> : null}
       {error ? <p className="error">{error}</p> : null}
 
       {!loading && !error && data ? (
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'grid', gap: 24 }}>
           <div>
-            <h4 style={{ margin: '0 0 8px' }}>Purchase History</h4>
+            <h4 style={{ margin: '0 0 12px', fontSize: '0.9375rem', fontWeight: 600 }}>Purchase history</h4>
             {data.purchases?.length ? (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {data.purchases.map((p) => (
-                  <div key={p.saleId} className="card" style={{ boxShadow: 'none' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <div key={p.saleId} className="history-nested-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                       <strong>Sale #{p.saleId}</strong>
-                      <span>{new Date(p.date).toLocaleString()}</span>
+                      <span className="muted" style={{ fontSize: '0.875rem' }}>
+                        {new Date(p.date).toLocaleString()}
+                      </span>
                     </div>
-                    <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
-                      <div>
-                        Total: <strong>{p.totalAmount}</strong>
+                    <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
+                      <div className="muted" style={{ fontSize: '0.875rem' }}>
+                        Total: <strong style={{ color: 'var(--text)' }}>{p.totalAmount}</strong>
                       </div>
                       {p.discount ? (
                         <>
-                          <div style={{ color: '#15803d' }}>
+                          <div style={{ color: '#15803d', fontSize: '0.875rem' }}>
                             Discount: <strong>-{p.discount}</strong>
                           </div>
-                          <div>
+                          <div style={{ fontSize: '0.875rem' }}>
                             Final: <strong>{p.finalAmount}</strong>
                           </div>
-                          <p style={{ margin: 0, color: '#15803d' }}>
-                            You received a 10% loyalty discount
+                          <p style={{ margin: '4px 0 0', color: '#15803d', fontSize: '0.8125rem' }}>
+                            Loyalty discount applied
                           </p>
                         </>
                       ) : (
-                        <div>
+                        <div style={{ fontSize: '0.875rem' }}>
                           Final: <strong>{p.totalAmount}</strong>
                         </div>
                       )}
                     </div>
 
                     {p.items?.length ? (
-                      <table className="table" style={{ marginTop: 8 }}>
-                        <thead>
-                          <tr>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Price</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {p.items.map((i) => (
-                            <tr key={`${p.saleId}-${i.partId}-${i.price}`}>
-                              <td>{i.partName || `Part #${i.partId}`}</td>
-                              <td>{i.quantity}</td>
-                              <td>{i.price}</td>
+                      <div className="table-wrap" style={{ marginTop: 12 }}>
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>Item</th>
+                              <th>Qty</th>
+                              <th>Price</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {p.items.map((i) => (
+                              <tr key={`${p.saleId}-${i.partId}-${i.price}`}>
+                                <td>{i.partName || `Part #${i.partId}`}</td>
+                                <td>{i.quantity}</td>
+                                <td>{i.price}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
-                      <p style={{ margin: '8px 0 0' }}>No items.</p>
+                      <p className="muted" style={{ margin: '10px 0 0', fontSize: '0.875rem' }}>
+                        No line items.
+                      </p>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p>No purchases found.</p>
+              <p className="muted">No purchases found.</p>
             )}
           </div>
 
           <div>
-            <h4 style={{ margin: '0 0 8px' }}>Service History</h4>
+            <h4 style={{ margin: '0 0 12px', fontSize: '0.9375rem', fontWeight: 600 }}>Service history</h4>
             {data.services?.length ? (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.services.map((s) => (
-                    <tr key={s.appointmentId}>
-                      <td>{s.serviceType}</td>
-                      <td>{s.status}</td>
-                      <td>{new Date(s.date).toLocaleString()}</td>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.services.map((s) => (
+                      <tr key={s.appointmentId}>
+                        <td>{s.serviceType}</td>
+                        <td>{s.status}</td>
+                        <td className="muted">{new Date(s.date).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <p>No services found.</p>
+              <p className="muted">No services found.</p>
             )}
           </div>
         </div>
@@ -149,4 +159,3 @@ export default function CustomerHistory(props) {
     </div>
   )
 }
-
