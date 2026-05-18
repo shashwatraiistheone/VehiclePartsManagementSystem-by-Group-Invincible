@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import type { StaffViewId } from '../../staff/staffViewId'
 import { staffPath } from '../../staff/staffRoutes'
 import { StaffDashboardCard } from '../dashboard/StaffDashboardCard'
+import { SystemAlerts } from '../dashboard/SystemAlerts'
 
 const tiles: { title: string; description: string; Icon: typeof UserPlus; view: StaffViewId }[] = [
   {
@@ -68,6 +69,9 @@ export function StaffHomePage() {
           Completed operations: customers, sales, history, reports, search, and appointments.
         </p>
       </header>
+
+      {/* Real-time System Alerts & Reminders */}
+      <SystemAlerts />
 
       <section aria-label="Shortcuts">
         <div className="grid min-w-0 auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2">

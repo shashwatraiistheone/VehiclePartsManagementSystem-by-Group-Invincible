@@ -20,6 +20,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         public DbSet<SaleItem> SaleItems => Set<SaleItem>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
         public DbSet<ServiceAppointment> ServiceAppointments => Set<ServiceAppointment>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

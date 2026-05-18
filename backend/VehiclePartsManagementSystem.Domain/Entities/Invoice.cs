@@ -13,5 +13,9 @@ namespace VehiclePartsManagementSystem.Domain.Entities
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public bool IsSent { get; set; } = false;
         public DateTime? SentDate { get; set; }
+
+        public bool IsPaid { get; set; } = false;
+        public int ReminderSentCount { get; set; } = 0;
+        public DateTime? LastReminderDate { get; set; }
     }
 }

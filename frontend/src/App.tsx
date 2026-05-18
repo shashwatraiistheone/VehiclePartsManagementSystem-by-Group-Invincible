@@ -17,6 +17,7 @@ import StaffListPage from './pages/StaffListPage'
 import VendorListPage from './pages/VendorListPage'
 import { AdminSaasPlaceholder, adminPlaceholderCopy } from './components/admin/AdminSaasPlaceholder'
 import { StaffWorkspace } from './components/staff/StaffWorkspace'
+import { CreditManagementPage } from './components/admin/CreditManagementPage'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import CustomerList from './CustomerList.jsx'
@@ -90,8 +91,9 @@ export default function App() {
         return <AdminSearchSalePage />
       case 'register-customer':
         return <AdminRegisterCustomerPage onDone={() => setAdminPageWithUrl('customers')} />
-      case 'sales-history':
       case 'credit-management':
+        return <CreditManagementPage />
+      case 'sales-history':
       case 'customer-reports':
       case 'generate-invoice': {
         const { title, description } = adminPlaceholderCopy(adminPage)

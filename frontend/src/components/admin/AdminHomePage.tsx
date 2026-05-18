@@ -16,6 +16,7 @@ import {
 import type { AdminPageId } from '../../admin/adminPages'
 import { getAccountEmailFromToken } from '../../lib/auth'
 import { DashboardFeatureCard } from './DashboardFeatureCard'
+import { SystemAlerts } from '../dashboard/SystemAlerts'
 
 type HomeCard = {
   title: string
@@ -76,6 +77,9 @@ export function AdminHomePage({ onNavigate }: Props) {
           New Sale
         </button>
       </header>
+
+      {/* Real-time System Alerts & Reminders */}
+      <SystemAlerts />
 
       {/* Feature grid — 1 col mobile, 2 from md; equal row heights */}
       <section aria-label="Modules">

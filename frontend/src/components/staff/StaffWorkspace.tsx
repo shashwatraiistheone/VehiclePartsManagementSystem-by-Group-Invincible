@@ -10,6 +10,7 @@ import { StaffSalesHistoryPage } from './StaffSalesHistoryPage'
 import { StaffReportsPage } from './StaffReportsPage'
 import { AppointmentsPage } from './AppointmentsPage'
 import { SectionPlaceholder } from '../../pages/SectionPlaceholder'
+import { CreditManagementPage } from '../admin/CreditManagementPage'
 import { STAFF_PART_REQUESTS_ENABLED, staffPath } from '../../staff/staffRoutes'
 import type { Customer, CustomerInput } from './customerModule'
 import { INITIAL_CUSTOMERS } from './customerModule'
@@ -108,15 +109,7 @@ export function StaffWorkspace({ onLogout }: Props) {
           element={<StaffSearchSalePage customers={customers} onRecordSale={recordSale} />}
         />
         <Route path="sales-history" element={<StaffSalesHistoryPage />} />
-        <Route
-          path="credit-management"
-          element={
-            <SectionPlaceholder
-              title="Credit Management"
-              description="Track customer credit limits, balances, and payment plans. This module will connect to billing when available."
-            />
-          }
-        />
+        <Route path="credit-management" element={<CreditManagementPage />} />
         <Route path="customer-reports" element={<StaffReportsPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route

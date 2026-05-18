@@ -122,3 +122,74 @@ export async function addVendor(token: string, vendor: CreateVendor) {
   })
 }
 
+export interface Notification {
+  id: number
+  title: string
+  message: string
+  type: 'LowStock' | 'UnpaidCredit'
+  referenceId: string
+  isRead: boolean
+  createdAt: string
+}
+
+export async function getNotifications(token: string) {
+  return await request<Notification[]>('/api/notifications', { token })
+}
+
+export async function markNotificationAsRead(token: string, id: number) {
+  return await request<{ message: string }>(`/api/notifications/${id}/read`, {
+    method: 'POST',
+    token,
+  })
+}
+
+export async function markAllNotificationsAsRead(token: string) {
+  return await request<{ message: string }>('/api/notifications/read-all', {
+    method: 'POST',
+    token,
+  })
+}
+
+export interface Invoice {
+  id: number
+  invoiceNumber: string
+  createdDate: string
+  isSent: boolean
+  sentDate?: string
+  isPaid: boolean
+  reminderSentCount: number
+  lastReminderDate?: string
+  sale?: {
+    id: number
+    totalAmount: number
+    discountAmount: number
+    originalTotalAmount: number
+    customer?: {
+      id: number
+      name: string
+      email: string
+      phone: string
+      address: string
+    }
+  }
+}
+
+export async function getInvoices(token: string) {
+  return await request<Invoice[]>('/api/invoices', { token })
+}
+
+export async function markInvoiceAsPaid(token: string, id: number) {
+  return await request<{ message: string }>(`/api/invoices/${id}/pay`, {
+    method: 'POST',
+    token,
+  })
+}
+
+export async function sendInvoiceReminder(token: string, id: number) {
+  return await request<{ message: string }>(`/api/invoices/${id}/send-reminder`, {
+    method: 'POST',
+    token,
+  })
+}
+
+
