@@ -17,6 +17,8 @@ function accessTarget(featureId: number): AdminPageId | undefined {
       return 'inventory'
     case 4:
       return 'sales-history'
+    case 5:
+      return 'vendors'
     case 6:
       return 'customers'
     case 7:

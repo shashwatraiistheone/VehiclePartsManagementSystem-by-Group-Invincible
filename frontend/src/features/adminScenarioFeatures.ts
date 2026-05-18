@@ -138,7 +138,7 @@ export const ADMIN_SCENARIO_FEATURES: ScenarioFeature[] = [
     id: 'vendor-management',
     title: 'Vendor Management',
     description: 'Manage supplier records, contacts, and procurement relationships.',
-    status: 'Pending',
+    status: 'Completed',
     Icon: BuildingStorefrontIcon,
   },
   {

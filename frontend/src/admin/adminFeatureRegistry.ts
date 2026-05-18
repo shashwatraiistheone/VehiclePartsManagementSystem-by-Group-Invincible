@@ -64,7 +64,7 @@ export const ADMIN_FEATURES_16: AdminFeature16[] = [
     id: 5,
     title: 'Vendor Management',
     description: 'Supplier records, contacts, and procurement.',
-    status: 'Pending',
+    status: 'Completed',
     Icon: Building2,
   },
   {
@@ -152,6 +152,7 @@ export const ADMIN_ACCESS_GRID_KEYS = [
   { label: 'Staff Management', featureId: 2 as const },
   { label: 'Parts Management', featureId: 3 as const },
   { label: 'Purchase Invoice', featureId: 4 as const },
+  { label: 'Vendor Management', featureId: 5 as const },
   { label: 'Customer Management', featureId: 6 as const },
   { label: 'Sales & Invoice', featureId: 7 as const },
   { label: 'Customer Reports', featureId: 9 as const },
