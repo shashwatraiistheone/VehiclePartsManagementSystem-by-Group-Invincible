@@ -32,7 +32,8 @@ namespace VehiclePartsManagementSystem.Api.Controllers
 
             vendor.Name = vendor.Name.Trim();
             vendor.Email = vendor.Email.Trim();
-            vendor.Contact = string.IsNullOrWhiteSpace(vendor.Contact) ? string.Empty : vendor.Contact.Trim();
+            vendor.ContactPerson = string.IsNullOrWhiteSpace(vendor.ContactPerson) ? string.Empty : vendor.ContactPerson.Trim();
+            vendor.Phone = string.IsNullOrWhiteSpace(vendor.Phone) ? string.Empty : vendor.Phone.Trim();
             vendor.Address = string.IsNullOrWhiteSpace(vendor.Address) ? string.Empty : vendor.Address.Trim();
 
             _context.Vendors.Add(vendor);

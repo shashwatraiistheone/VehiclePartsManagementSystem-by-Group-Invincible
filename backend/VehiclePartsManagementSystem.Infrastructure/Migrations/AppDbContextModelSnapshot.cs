@@ -108,7 +108,12 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("VendorId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("VendorId");
 
                     b.ToTable("Parts");
                 });
@@ -218,6 +223,48 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
                     b.ToTable("SaleItems");
                 });
 
+            modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Staff", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Staff");
+                });
+
             modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -264,7 +311,14 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Contact")
+                    b.Property<string>("ContactPerson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -272,9 +326,26 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Vendors");
+                });
+
+            modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Part", b =>
+                {
+                    b.HasOne("VehiclePartsManagementSystem.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("Parts")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Invoice", b =>
@@ -347,6 +418,11 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
                     b.Navigation("Invoice");
 
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Vendor", b =>
+                {
+                    b.Navigation("Parts");
                 });
 #pragma warning restore 612, 618
         }

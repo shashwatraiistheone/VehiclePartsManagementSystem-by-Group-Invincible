@@ -12,6 +12,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         public DbSet<Part> Parts => Set<Part>();
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<User> Users => Set<User>();
+        public DbSet<Staff> Staff => Set<Staff>();
         public DbSet<Vendor> Vendors => Set<Vendor>();
         public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
         public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
@@ -39,9 +40,31 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
                 .HasIndex(u => u.Username)
                 .IsUnique();
 
+            // Staff accounts (Feature 2) — role stored as text for readability in PostgreSQL.
+            modelBuilder.Entity<Staff>()
+                .Property(s => s.Role)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => Enum.Parse<UserRole>(v, true));
+
+            modelBuilder.Entity<Staff>()
+                .HasIndex(s => s.Email)
+                .IsUnique();
+
             modelBuilder.Entity<Customer>()
                 .HasIndex(c => c.Email)
                 .IsUnique();
+
+            // Feature 5: vendor email must be unique; parts may reference a vendor.
+            modelBuilder.Entity<Vendor>()
+                .HasIndex(v => v.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<Part>()
+                .HasOne(p => p.Vendor)
+                .WithMany(v => v.Parts)
+                .HasForeignKey(p => p.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<PurchaseInvoice>()
                 .HasMany(p => p.Items)

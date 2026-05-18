@@ -11,6 +11,7 @@ export type AdminPageId =
   | 'customer-reports'
   | 'generate-invoice'
   | 'inventory'
+  | 'vendors'
   | 'appointments'
   | 'part-requests'
 

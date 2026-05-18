@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VehiclePartsManagementSystem.Application.DTOs;
 using VehiclePartsManagementSystem.Application.Interfaces;
@@ -8,52 +9,48 @@ namespace VehiclePartsManagementSystem.Api.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IStaffService _staffService;
 
-        public AuthController(IAuthService authService, IWebHostEnvironment environment)
+        public AuthController(IStaffService staffService)
         {
-            _authService = authService;
-            _environment = environment;
+            _staffService = staffService;
         }
 
-        [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
-        {
-            try
-            {
-                var result = await _authService.RegisterAsync(dto);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
+        /// <summary>
+        /// Staff/Admin sign-in — returns JWT with userId, name, email, role.
+        /// </summary>
         [HttpPost("login")]
-        public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<AuthResponseDto>> Login(
+            [FromBody] LoginDto dto,
+            CancellationToken cancellationToken)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                var result = await _authService.LoginAsync(dto);
-                return Ok(result);
+                return ValidationProblem(ModelState);
             }
-            catch (InvalidOperationException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message = "Sign-in failed.",
-                        detail = _environment.IsDevelopment() ? ex.Message : null,
-                    });
-            }
+
+            var result = await _staffService.LoginAsync(dto, cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Example staff-protected endpoint — any authenticated staff or admin.
+        /// </summary>
+        [HttpGet("me")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult Me()
+        {
+            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("userId")?.Value;
+            var name = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                ?? User.Identity?.Name;
+            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+            return Ok(new { userId, name, email, role });
         }
     }
 }
-

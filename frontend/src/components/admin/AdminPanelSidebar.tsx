@@ -2,6 +2,7 @@ import {
   Home,
   LayoutDashboard,
   Shield,
+  UserSquare2,
   Users,
   ScanSearch,
   UserPlus,
@@ -12,6 +13,7 @@ import {
   CalendarDays,
   ClipboardList,
   Package,
+  Truck,
   LogOut,
   ChevronRight,
 } from 'lucide-react'
@@ -34,6 +36,7 @@ const sections: Section[] = [
       { id: 'home', label: 'Home', Icon: Home },
       { id: 'staff-dashboard', label: 'Staff Dashboard', Icon: LayoutDashboard },
       { id: 'admin-dashboard', label: 'Admin Dashboard', Icon: Shield },
+      { id: 'staff-management', label: 'Manage Staff', Icon: UserSquare2 },
     ],
   },
   {
@@ -59,6 +62,7 @@ const sections: Section[] = [
       { id: 'appointments', label: 'Appointments', Icon: CalendarDays },
       { id: 'part-requests', label: 'Part Requests', Icon: ClipboardList, disabled: true },
       { id: 'inventory', label: 'Inventory Management', Icon: Package },
+      { id: 'vendors', label: 'Manage Vendors', Icon: Truck },
     ],
   },
 ]

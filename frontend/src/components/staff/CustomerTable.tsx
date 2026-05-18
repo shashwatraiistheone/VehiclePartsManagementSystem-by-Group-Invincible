@@ -1,4 +1,4 @@
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 
 export type CustomerRow = {
   id: number
@@ -12,10 +12,10 @@ export type CustomerRow = {
 
 type Props = {
   rows: CustomerRow[]
-  loading?: boolean
   emptyMessage?: string
   onView: (id: number) => void
   onEdit: (id: number) => void
+  onDelete: (id: number) => void
 }
 
 function statusBadge(status: CustomerRow['status']) {
@@ -34,15 +34,7 @@ function statusBadge(status: CustomerRow['status']) {
   )
 }
 
-export function CustomerTable({ rows, loading, emptyMessage, onView, onEdit }: Props) {
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-slate-200/90 bg-white p-12 text-center text-sm text-slate-500 shadow-md">
-        Loading customers…
-      </div>
-    )
-  }
-
+export function CustomerTable({ rows, emptyMessage, onView, onEdit, onDelete }: Props) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200/90 bg-white p-12 text-center text-sm text-slate-500 shadow-md">
@@ -57,11 +49,11 @@ export function CustomerTable({ rows, loading, emptyMessage, onView, onEdit }: P
         <table className="min-w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/90 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="whitespace-nowrap px-4 py-3">Name</th>
+              <th className="whitespace-nowrap px-4 py-3">Customer Name</th>
               <th className="whitespace-nowrap px-4 py-3">Phone</th>
-              <th className="whitespace-nowrap px-4 py-3">Vehicle number</th>
-              <th className="whitespace-nowrap px-4 py-3">Total purchases</th>
-              <th className="whitespace-nowrap px-4 py-3">Last visit</th>
+              <th className="whitespace-nowrap px-4 py-3">Vehicle Number</th>
+              <th className="whitespace-nowrap px-4 py-3">Total Purchases</th>
+              <th className="whitespace-nowrap px-4 py-3">Last Visit</th>
               <th className="whitespace-nowrap px-4 py-3">Status</th>
               <th className="whitespace-nowrap px-4 py-3 text-right">Actions</th>
             </tr>
@@ -91,6 +83,14 @@ export function CustomerTable({ rows, loading, emptyMessage, onView, onEdit }: P
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(r.id)}
+                    className="ml-1 inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
                   </button>
                 </td>
               </tr>

@@ -1,20 +1,18 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace VehiclePartsManagementSystem.Domain.Entities
 {
+    /// <summary>
+    /// Supplier/vendor record (Feature 5).
+    /// </summary>
     public class Vendor
     {
         public int Id { get; set; }
-
-        [Required]
         public string Name { get; set; } = string.Empty;
-
-        [Required]
+        public string ContactPerson { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-
-        public string Contact { get; set; } = string.Empty;
-
         public string Address { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<Part> Parts { get; set; } = new List<Part>();
     }
 }
-

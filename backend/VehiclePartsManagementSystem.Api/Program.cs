@@ -9,8 +9,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using VehiclePartsManagementSystem.Api.Middleware;
+using VehiclePartsManagementSystem.Application.Validators;
 using VehiclePartsManagementSystem.Application.Interfaces;
+using VehiclePartsManagementSystem.Domain.Entities;
 using VehiclePartsManagementSystem.Infrastructure.Data;
+using VehiclePartsManagementSystem.Infrastructure.Repositories;
 using VehiclePartsManagementSystem.Infrastructure.Services;
 
 namespace VehiclePartsManagementSystem.Api
@@ -24,6 +30,8 @@ namespace VehiclePartsManagementSystem.Api
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -55,14 +63,23 @@ namespace VehiclePartsManagementSystem.Api
             // Services
             builder.Services.AddScoped<IPartService, PartService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+            builder.Services.AddScoped<IStaffService, StaffService>();
+            builder.Services.AddScoped<IVendorRepository, VendorRepository>();
+            builder.Services.AddScoped<IVendorService, VendorService>();
             builder.Services.AddScoped<IPurchaseService, PurchaseService>();
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ISalesService, SalesService>();
             builder.Services.AddScoped<IReportService, ReportService>();
 
-            // JWT Auth
-            var jwtSection = builder.Configuration.GetSection("Jwt");
-            var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT key not configured (Jwt:Key).");
+            // JWT Auth — JwtSettings is the canonical section; Jwt kept for older configs.
+            var jwtSection = builder.Configuration.GetSection("JwtSettings");
+            if (!jwtSection.Exists() || string.IsNullOrWhiteSpace(jwtSection["Key"]))
+            {
+                jwtSection = builder.Configuration.GetSection("Jwt");
+            }
+
+            var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT key not configured (JwtSettings:Key).");
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -131,6 +148,9 @@ namespace VehiclePartsManagementSystem.Api
                         ALTER TABLE "Customers" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT '';
                         CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customers_Email" ON "Customers" ("Email");
                         """);
+
+                    EnsureStaffSchema(db);
+                    SeedDefaultAdminAsync(db).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
@@ -172,26 +192,16 @@ namespace VehiclePartsManagementSystem.Api
                     END $$;
                     """);
 
-                // Vendors: some DBs only have Id/Name/Email; the entity expects Contact and Address (and Email).
-                alignDb.Database.ExecuteSqlRaw(
-                    """
-                    DO $$
-                    BEGIN
-                      IF EXISTS (
-                        SELECT 1 FROM information_schema.tables
-                        WHERE table_schema = 'public' AND table_name = 'Vendors'
-                      ) THEN
-                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Email" text NOT NULL DEFAULT '';
-                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Contact" text NOT NULL DEFAULT '';
-                        ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT '';
-                      END IF;
-                    END $$;
-                    """);
+                EnsureStaffSchema(alignDb);
+
+                EnsureVendorSchema(alignDb);
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Database schema alignment: {ex.Message}");
             }
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             app.UseExceptionHandler(errorApp =>
             {
@@ -227,6 +237,95 @@ namespace VehiclePartsManagementSystem.Api
             app.MapControllers();
 
             app.Run();
+        }
+
+        /// <summary>
+        /// Feature 5: align Vendors table with ContactPerson, Phone, CreatedAt, and unique email.
+        /// </summary>
+        private static void EnsureVendorSchema(AppDbContext db)
+        {
+            db.Database.ExecuteSqlRaw(
+                """
+                DO $$
+                BEGIN
+                  IF EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'Vendors'
+                  ) THEN
+                    IF EXISTS (
+                      SELECT 1 FROM information_schema.columns
+                      WHERE table_schema = 'public' AND table_name = 'Vendors' AND column_name = 'Contact'
+                    ) AND NOT EXISTS (
+                      SELECT 1 FROM information_schema.columns
+                      WHERE table_schema = 'public' AND table_name = 'Vendors' AND column_name = 'ContactPerson'
+                    ) THEN
+                      ALTER TABLE "Vendors" RENAME COLUMN "Contact" TO "ContactPerson";
+                    END IF;
+
+                    ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "ContactPerson" text NOT NULL DEFAULT '';
+                    ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Phone" text NOT NULL DEFAULT '';
+                    ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Email" text NOT NULL DEFAULT '';
+                    ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT '';
+                    ALTER TABLE "Vendors" ADD COLUMN IF NOT EXISTS "CreatedAt" timestamp with time zone NOT NULL DEFAULT NOW();
+                  END IF;
+                END $$;
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Vendors_Email" ON "Vendors" ("Email");
+                ALTER TABLE "Parts" ADD COLUMN IF NOT EXISTS "VendorId" integer NULL;
+                CREATE INDEX IF NOT EXISTS "IX_Parts_VendorId" ON "Parts" ("VendorId");
+                INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+                VALUES ('20260518140000_UpdateVendorFeature5', '9.0.4')
+                ON CONFLICT ("MigrationId") DO NOTHING;
+                """);
+        }
+
+        /// <summary>
+        /// Feature 2: ensure Staff table exists when AddStaff migration was not applied yet.
+        /// </summary>
+        private static void EnsureStaffSchema(AppDbContext db)
+        {
+            db.Database.ExecuteSqlRaw(
+                """
+                CREATE TABLE IF NOT EXISTS "Staff" (
+                    "Id" integer GENERATED BY DEFAULT AS IDENTITY,
+                    "FullName" text NOT NULL,
+                    "Email" text NOT NULL,
+                    "Phone" text NOT NULL,
+                    "PasswordHash" text NOT NULL,
+                    "Role" text NOT NULL,
+                    "IsActive" boolean NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    CONSTRAINT "PK_Staff" PRIMARY KEY ("Id")
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Staff_Email" ON "Staff" ("Email");
+                INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+                VALUES ('20260518120000_AddStaff', '9.0.4')
+                ON CONFLICT ("MigrationId") DO NOTHING;
+                """);
+        }
+
+        /// <summary>
+        /// Ensures at least one admin exists for first-time local development.
+        /// </summary>
+        private static async Task SeedDefaultAdminAsync(AppDbContext db)
+        {
+            if (await db.Staff.AnyAsync())
+            {
+                return;
+            }
+
+            db.Staff.Add(new Staff
+            {
+                FullName = "System Administrator",
+                Email = "admin@partshub.local",
+                Phone = "+10000000000",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                Role = UserRole.Admin,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+            await db.SaveChangesAsync();
+            Console.WriteLine("Seeded default admin: admin@partshub.local / Admin@123");
         }
     }
 }

@@ -27,6 +27,40 @@ export function isStaff(): boolean {
   return getRoleFromToken() === 'Staff'
 }
 
+export function getUserIdFromToken(): number | null {
+  const t = getToken()
+  if (!t) return null
+  try {
+    const part = t.split('.')[1]
+    if (!part) return null
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(b64)) as Record<string, unknown>
+    const sub = payload.sub ?? payload.userId
+    if (typeof sub === 'string') return Number.parseInt(sub, 10)
+    if (typeof sub === 'number') return sub
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function getNameFromToken(): string | null {
+  const t = getToken()
+  if (!t) return null
+  try {
+    const part = t.split('.')[1]
+    if (!part) return null
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(b64)) as Record<string, unknown>
+    const name =
+      (typeof payload.name === 'string' && payload.name) ||
+      (typeof payload.unique_name === 'string' && payload.unique_name)
+    return name || null
+  } catch {
+    return null
+  }
+}
+
 /** Display email or username from JWT for profile UI. */
 export function getAccountEmailFromToken(): string | null {
   const t = getToken()

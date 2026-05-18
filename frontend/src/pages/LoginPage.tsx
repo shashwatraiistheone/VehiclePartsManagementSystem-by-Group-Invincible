@@ -4,7 +4,8 @@ import {
   CubeIcon,
   PresentationChartLineIcon,
 } from '@heroicons/react/24/outline'
-import { login, setToken } from '../api'
+import { setToken } from '../api'
+import { loginStaff } from '../services/staffApi'
 
 const REMEMBER_EMAIL_KEY = 'partsHubRememberEmail'
 
@@ -51,8 +52,11 @@ export default function LoginPage(props: {
     setError(null)
     setLoading(true)
     try {
-      const res = await login(email.trim(), password)
+      const res = await loginStaff({ email: email.trim(), password })
       setToken(res.token)
+      localStorage.setItem('userId', String(res.userId))
+      localStorage.setItem('userName', res.name)
+      localStorage.setItem('userRole', res.role)
       if (rememberMe) {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim())
       } else {
@@ -128,13 +132,13 @@ export default function LoginPage(props: {
                   htmlFor="login-email"
                   className="mb-1.5 block text-sm font-medium text-slate-700"
                 >
-                  Username
+                  Email
                 </label>
                 <input
                   id="login-email"
-                  name="username"
+                  name="email"
                   type="email"
-                  autoComplete="username email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"

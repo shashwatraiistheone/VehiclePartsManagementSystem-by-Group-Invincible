@@ -53,7 +53,13 @@ async function request<T>(
   return data as T
 }
 
-export type LoginResponse = { token: string; email: string; role: string }
+export type LoginResponse = {
+  token: string
+  userId: number
+  name: string
+  email: string
+  role: string
+}
 export async function login(email: string, password: string) {
   return await request<LoginResponse>('/api/auth/login', {
     method: 'POST',

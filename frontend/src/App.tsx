@@ -11,6 +11,10 @@ import { AdminDashboardPage } from './components/admin/AdminDashboardPage'
 import { AdminStaffDashboardPage } from './components/admin/AdminStaffDashboardPage'
 import { AdminInventoryPage } from './components/admin/AdminInventoryPage'
 import { AdminAppointmentsPage } from './components/admin/AdminAppointmentsPage'
+import { AdminSearchSalePage } from './components/admin/AdminSearchSalePage'
+import { AdminRegisterCustomerPage } from './components/admin/AdminRegisterCustomerPage'
+import StaffListPage from './pages/StaffListPage'
+import VendorListPage from './pages/VendorListPage'
 import { AdminSaasPlaceholder, adminPlaceholderCopy } from './components/admin/AdminSaasPlaceholder'
 import { StaffWorkspace } from './components/staff/StaffWorkspace'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -50,6 +54,9 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('userName')
+    localStorage.removeItem('userRole')
     setAuthed(false)
     setAdminPage('home')
     navigate('/')
@@ -71,22 +78,18 @@ export default function App() {
         )
       case 'admin-dashboard':
         return <AdminDashboardPage onNavigate={setAdminPageWithUrl} />
-      case 'staff-management': {
-        const { title, description } = adminPlaceholderCopy('staff-management')
-        return (
-          <AdminSaasPlaceholder
-            title={title}
-            description={description}
-            onBack={() => setAdminPageWithUrl('home')}
-          />
-        )
-      }
+      case 'staff-management':
+        return <StaffListPage onBack={() => setAdminPageWithUrl('home')} />
+      case 'vendors':
+        return <VendorListPage onBack={() => setAdminPageWithUrl('home')} />
       case 'customers':
-        return <CustomerList />
+        return <CustomerList onNavigate={setAdminPageWithUrl} />
       case 'inventory':
         return <AdminInventoryPage />
       case 'search-sale':
+        return <AdminSearchSalePage />
       case 'register-customer':
+        return <AdminRegisterCustomerPage onDone={() => setAdminPageWithUrl('customers')} />
       case 'sales-history':
       case 'credit-management':
       case 'customer-reports':
