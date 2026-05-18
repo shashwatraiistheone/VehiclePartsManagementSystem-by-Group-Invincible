@@ -71,6 +71,7 @@ namespace VehiclePartsManagementSystem.Api
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ISalesService, SalesService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             // JWT Auth — JwtSettings is the canonical section; Jwt kept for older configs.
             var jwtSection = builder.Configuration.GetSection("JwtSettings");
@@ -147,6 +148,8 @@ namespace VehiclePartsManagementSystem.Api
                         ALTER TABLE "Customers" ADD COLUMN IF NOT EXISTS "Phone" text NOT NULL DEFAULT '';
                         ALTER TABLE "Customers" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT '';
                         CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customers_Email" ON "Customers" ("Email");
+                        ALTER TABLE "Invoices" ADD COLUMN IF NOT EXISTS "IsSent" boolean NOT NULL DEFAULT false;
+                        ALTER TABLE "Invoices" ADD COLUMN IF NOT EXISTS "SentDate" timestamp with time zone NULL;
                         """);
 
                     EnsureStaffSchema(db);

@@ -19,14 +19,15 @@ namespace VehiclePartsManagementSystem.Api.Controllers
         [HttpGet("{id:int}/history")]
         public async Task<ActionResult<CustomerHistoryDto>> GetHistory(int id)
         {
-            var customerExists = await _db.Customers.AnyAsync(c => c.Id == id);
-            if (!customerExists)
+            var customer = await _db.Customers.FindAsync(id);
+            if (customer == null)
             {
                 return NotFound(new { message = "Customer not found" });
             }
 
             var purchases = await _db.Sales
                 .Where(s => s.CustomerId == id)
+                .Include(s => s.Invoice)
                 .Include(s => s.Items)
                 .ThenInclude(i => i.Part)
                 .OrderByDescending(s => s.Date)
@@ -40,6 +41,8 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             var dto = new CustomerHistoryDto
             {
                 CustomerId = id,
+                CustomerName = customer.Name,
+                CustomerEmail = customer.Email,
                 Purchases = purchases.Select(s => new PurchaseHistoryDto
                 {
                     SaleId = s.Id,
@@ -47,6 +50,10 @@ namespace VehiclePartsManagementSystem.Api.Controllers
                     TotalAmount = s.OriginalTotalAmount,
                     Discount = s.DiscountAmount,
                     FinalAmount = s.TotalAmount,
+                    IsInvoiceSent = s.Invoice != null && s.Invoice.IsSent,
+                    InvoiceSentDate = s.Invoice != null && s.Invoice.IsSent && s.Invoice.SentDate.HasValue 
+                        ? s.Invoice.SentDate.Value.ToString("O") 
+                        : null,
                     Items = s.Items.Select(i => new PurchaseItemHistoryDto
                     {
                         PartId = i.PartId,

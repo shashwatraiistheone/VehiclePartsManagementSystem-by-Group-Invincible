@@ -11,5 +11,7 @@ namespace VehiclePartsManagementSystem.Domain.Entities
 
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public bool IsSent { get; set; } = false;
+        public DateTime? SentDate { get; set; }
     }
 }

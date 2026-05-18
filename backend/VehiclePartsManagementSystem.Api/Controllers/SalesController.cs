@@ -35,5 +35,23 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             var sales = await _salesService.GetAllSalesAsync();
             return Ok(sales);
         }
+
+        [HttpPost("{saleId:int}/send-invoice")]
+        public async Task<IActionResult> SendInvoice(int saleId, [FromBody] SendInvoiceDto? dto)
+        {
+            try
+            {
+                await _salesService.SendInvoiceEmailAsync(saleId, dto?.Email);
+                return Ok(new { message = "Invoice email sent successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error sending email: {ex.Message}" });
+            }
+        }
     }
 }

@@ -3,6 +3,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
     public class CustomerHistoryDto
     {
         public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
         public List<PurchaseHistoryDto> Purchases { get; set; } = new();
         public List<ServiceHistoryDto> Services { get; set; } = new();
     }
@@ -14,6 +16,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public decimal TotalAmount { get; set; }
         public decimal Discount { get; set; }
         public decimal FinalAmount { get; set; }
+        public bool IsInvoiceSent { get; set; }
+        public string? InvoiceSentDate { get; set; }
         public List<PurchaseItemHistoryDto> Items { get; set; } = new();
     }
 
