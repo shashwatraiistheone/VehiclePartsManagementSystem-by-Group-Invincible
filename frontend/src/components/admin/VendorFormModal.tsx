@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { APP_NAME } from '../../lib/appBranding'
 import type { CreateVendorPayload, UpdateVendorPayload, Vendor } from '../../services/vendorApi'
 
 export type VendorFormMode = 'create' | 'edit'
@@ -13,16 +14,28 @@ type Props = {
   onSubmit: (payload: CreateVendorPayload | UpdateVendorPayload) => void
 }
 
-const emptyForm = (): CreateVendorPayload => ({
+type FormState = {
+  name: string
+  contactPerson: string
+  phone: string
+  email: string
+  address: string
+  notes: string
+  isActive: boolean
+}
+
+const emptyForm = (): FormState => ({
   name: '',
   contactPerson: '',
   phone: '',
   email: '',
   address: '',
+  notes: '',
+  isActive: true,
 })
 
 export function VendorFormModal({ mode, open, initial, loading, onClose, onSubmit }: Props) {
-  const [form, setForm] = useState<CreateVendorPayload>(emptyForm())
+  const [form, setForm] = useState<FormState>(emptyForm())
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -34,6 +47,8 @@ export function VendorFormModal({ mode, open, initial, loading, onClose, onSubmi
         phone: initial.phone,
         email: initial.email,
         address: initial.address ?? '',
+        notes: initial.notes ?? '',
+        isActive: initial.isActive,
       })
     } else {
       setForm(emptyForm())
@@ -57,53 +72,40 @@ export function VendorFormModal({ mode, open, initial, loading, onClose, onSubmi
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
-    onSubmit({
+
+    const base = {
       name: form.name.trim(),
       contactPerson: form.contactPerson.trim(),
       phone: form.phone.trim(),
       email: form.email.trim(),
-      address: form.address?.trim() || undefined,
-    })
-  }
+      address: form.address.trim() || undefined,
+      notes: form.notes.trim() || undefined,
+    }
 
-  function field(
-    key: keyof CreateVendorPayload,
-    label: string,
-    required = true,
-    type: string = 'text',
-  ) {
-    const err = errors[key]
-    return (
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium text-slate-700">
-          {label}
-          {!required ? <span className="font-normal text-slate-400"> (optional)</span> : null}
-        </span>
-        <input
-          type={type}
-          value={form[key] ?? ''}
-          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-          disabled={loading}
-          className={[
-            'w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2',
-            err
-              ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
-              : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/15',
-          ].join(' ')}
-        />
-        {err ? <span className="mt-1 block text-xs text-red-600">{err}</span> : null}
-      </label>
-    )
+    if (mode === 'edit') {
+      onSubmit({ ...base, isActive: form.isActive })
+    } else {
+      onSubmit(base)
+    }
   }
 
   return (
-    <ModalOverlay>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
       <div
         className="w-full max-w-lg rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-6 py-4">
-          <ModalHeader mode={mode} />
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              {mode === 'create' ? 'Add New Vendor' : 'Edit Vendor'}
+            </h2>
+            <p className="text-sm text-slate-500">
+              {mode === 'create'
+                ? `Register a new parts supplier for ${APP_NAME}.`
+                : 'Update supplier contact and status details.'}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -114,14 +116,72 @@ export function VendorFormModal({ mode, open, initial, loading, onClose, onSubmi
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {field('name', 'Vendor name')}
-          {field('contactPerson', 'Contact person')}
-          {field('phone', 'Phone', true, 'tel')}
-          {field('email', 'Email', true, 'email')}
-          {field('address', 'Address', false)}
+        <form onSubmit={handleSubmit} className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
+          <FormField
+            label="Vendor Name"
+            value={form.name}
+            error={errors.name}
+            onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+            disabled={loading}
+          />
+          <FormField
+            label="Contact Person"
+            value={form.contactPerson}
+            error={errors.contactPerson}
+            onChange={(v) => setForm((f) => ({ ...f, contactPerson: v }))}
+            disabled={loading}
+          />
+          <FormField
+            label="Phone"
+            type="tel"
+            value={form.phone}
+            error={errors.phone}
+            onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+            disabled={loading}
+          />
+          <FormField
+            label="Email"
+            type="email"
+            value={form.email}
+            error={errors.email}
+            onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+            disabled={loading}
+          />
+          <FormField
+            label="Address"
+            value={form.address}
+            optional
+            onChange={(v) => setForm((f) => ({ ...f, address: v }))}
+            disabled={loading}
+          />
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">
+              Notes <span className="font-normal text-slate-400">(optional)</span>
+            </span>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              disabled={loading}
+              rows={3}
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+            />
+          </label>
+          {mode === 'edit' ? (
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-slate-700">Status</span>
+              <select
+                value={form.isActive ? 'Active' : 'Inactive'}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.value === 'Active' }))}
+                disabled={loading}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
+          ) : null}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -133,34 +193,53 @@ export function VendorFormModal({ mode, open, initial, loading, onClose, onSubmi
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+              className="rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/25 hover:from-blue-500 hover:to-violet-500 disabled:opacity-60"
             >
-              {loading ? 'Saving…' : mode === 'create' ? 'Add vendor' : 'Save changes'}
+              {loading ? 'Saving…' : 'Save Vendor'}
             </button>
           </div>
         </form>
       </div>
-    </ModalOverlay>
-  )
-}
-
-function ModalOverlay({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-      {children}
     </div>
   )
 }
 
-function ModalHeader({ mode }: { mode: VendorFormMode }) {
+function FormField({
+  label,
+  value,
+  error,
+  onChange,
+  disabled,
+  type = 'text',
+  optional = false,
+}: {
+  label: string
+  value: string
+  error?: string
+  onChange: (v: string) => void
+  disabled?: boolean
+  type?: string
+  optional?: boolean
+}) {
   return (
-    <div>
-      <h2 className="text-lg font-bold text-slate-900">
-        {mode === 'create' ? 'Add vendor' : 'Edit vendor'}
-      </h2>
-      <p className="text-sm text-slate-500">
-        {mode === 'create' ? 'Register a new parts supplier.' : 'Update supplier details.'}
-      </p>
-    </div>
+    <label className="block text-sm">
+      <span className="mb-1 block font-medium text-slate-700">
+        {label}
+        {optional ? <span className="font-normal text-slate-400"> (optional)</span> : null}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={[
+          'w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2',
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
+            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/15',
+        ].join(' ')}
+      />
+      {error ? <span className="mt-1 block text-xs text-red-600">{error}</span> : null}
+    </label>
   )
 }

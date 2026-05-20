@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { APP_NAME, APP_TAGLINE } from '../../lib/appBranding'
 import {
   Home,
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   Package,
   LogOut,
   Wrench,
+  ShieldCheck,
 } from 'lucide-react'
 import type { StaffViewId } from '../../staff/staffViewId'
 import { STAFF_PART_REQUESTS_ENABLED, staffPath } from '../../staff/staffRoutes'
@@ -52,6 +54,7 @@ function buildNavGroups(): NavGroup[] {
         { id: 'manage-customers', label: 'Manage Customers', Icon: Users },
         { id: 'search-sale', label: 'Search & Sale', Icon: ScanSearch },
         { id: 'register-customer', label: 'Register Customer', Icon: UserPlus },
+        { id: 'community-reviews', label: 'Community Moderation', Icon: ShieldCheck },
       ],
     },
     {
@@ -92,10 +95,10 @@ function getDisplayName(email: string | null): string {
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return [
-    'group flex items-center gap-3 rounded-lg px-4 py-2 text-left text-sm font-medium transition-colors duration-150',
+    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200',
     isActive
-      ? 'bg-blue-600 text-white'
-      : 'text-gray-300 hover:bg-blue-800 hover:text-white',
+      ? 'bg-primary-600 text-white shadow-md shadow-primary-600/30'
+      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white',
   ].join(' ')
 }
 
@@ -108,14 +111,7 @@ export function StaffPanelSidebar({ onLogout }: Props) {
   const navGroups = buildNavGroups()
 
   return (
-    <aside
-      className="
-        flex h-screen w-64 shrink-0 flex-col
-        bg-gradient-to-b from-gray-900 to-blue-950
-        border-r border-white/[0.06]
-        text-gray-300
-      "
-    >
+    <aside className="flex h-full min-h-[min(100dvh,100vh)] w-full flex-col border-r border-white/[0.06] bg-[#0f172a] text-slate-200 shadow-xl md:w-[280px]">
       {/* ── Logo / Brand ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 border-b border-white/[0.07] px-5 py-5">
         <div
@@ -128,8 +124,8 @@ export function StaffPanelSidebar({ onLogout }: Props) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-white">PartsHub</p>
-          <p className="truncate text-[11px] leading-tight text-gray-400">Vehicle Parts Management</p>
+          <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-white">{APP_NAME}</p>
+          <p className="truncate text-[11px] leading-tight text-gray-400">{APP_TAGLINE}</p>
         </div>
 
         <span

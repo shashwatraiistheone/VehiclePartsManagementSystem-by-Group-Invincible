@@ -62,15 +62,43 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("BalanceAmount")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastReminderDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ReminderSentCount")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SaleId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SentDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -126,17 +154,37 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProcessedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("numeric");
+
+                    b.Property<int?>("VendorId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("VendorName")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("VendorId");
 
                     b.ToTable("PurchaseInvoices");
                 });
@@ -410,7 +458,14 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.PurchaseInvoice", b =>
                 {
+                    b.HasOne("VehiclePartsManagementSystem.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("PurchaseInvoices")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Items");
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Sale", b =>
@@ -423,6 +478,8 @@ namespace VehiclePartsManagementSystem.Infrastructure.Migrations
             modelBuilder.Entity("VehiclePartsManagementSystem.Domain.Entities.Vendor", b =>
                 {
                     b.Navigation("Parts");
+
+                    b.Navigation("PurchaseInvoices");
                 });
 #pragma warning restore 612, 618
         }

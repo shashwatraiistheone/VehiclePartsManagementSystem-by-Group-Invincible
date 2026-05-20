@@ -148,6 +148,41 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             };
         }
 
+        public async Task ChangePasswordAsync(
+            int id,
+            ChangeCustomerPasswordDto dto,
+            CancellationToken cancellationToken = default)
+        {
+            var staff = await _staffRepository.GetByIdAsync(id, cancellationToken);
+            if (staff == null)
+            {
+                throw new InvalidOperationException("Staff account not found.");
+            }
+
+            if (string.IsNullOrWhiteSpace(staff.PasswordHash))
+            {
+                throw new InvalidOperationException("Password login is not set up for this account.");
+            }
+
+            bool currentOk;
+            try
+            {
+                currentOk = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, staff.PasswordHash);
+            }
+            catch
+            {
+                currentOk = false;
+            }
+
+            if (!currentOk)
+            {
+                throw new UnauthorizedAccessException("Current password is incorrect.");
+            }
+
+            staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _staffRepository.UpdateAsync(staff, cancellationToken);
+        }
+
         private string GenerateJwtToken(Staff staff)
         {
             // Prefer JwtSettings; fall back to legacy Jwt section for existing configs.
@@ -170,6 +205,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 new(JwtRegisteredClaimNames.Name, staff.FullName),
                 new(JwtRegisteredClaimNames.Email, staff.Email),
                 new(ClaimTypes.Role, staff.Role.ToString()),
+                new("role", staff.Role.ToString()),
                 new("userId", staff.Id.ToString()),
             };
 

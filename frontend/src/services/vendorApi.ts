@@ -1,39 +1,8 @@
-import axios, { type AxiosError } from 'axios'
+import axios from 'axios'
+import { api, extractApiErrorMessage } from '../lib/apiClient'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL as string | undefined
-
-function requireBaseUrl(): string {
-  if (!baseURL) {
-    throw new Error('Missing VITE_API_BASE_URL. Add it to frontend/.env')
-  }
-  return baseURL
-}
-
-const api = axios.create({
-  baseURL: requireBaseUrl(),
-  headers: { 'Content-Type': 'application/json' },
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-function extractErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const ax = error as AxiosError<{ message?: string; title?: string }>
-    const data = ax.response?.data
-    if (typeof data?.message === 'string') return data.message
-    if (typeof data?.title === 'string') return data.title
-    if (ax.response?.status === 401) return 'Unauthorized. Please sign in again.'
-    if (ax.response?.status === 403) return 'You do not have permission to perform this action.'
-    if (ax.response?.status === 409) return data?.message ?? 'This action conflicts with existing data.'
-  }
-  if (error instanceof Error) return error.message
-  return 'Request failed'
+function isAxiosNotFound(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.status === 404
 }
 
 export type Vendor = {
@@ -43,6 +12,10 @@ export type Vendor = {
   phone: string
   email: string
   address: string
+  notes: string
+  isActive: boolean
+  status: string
+  totalPurchases: number
   createdAt: string
 }
 
@@ -52,34 +25,75 @@ export type CreateVendorPayload = {
   phone: string
   email: string
   address?: string
+  notes?: string
 }
 
-export type UpdateVendorPayload = CreateVendorPayload
+export type UpdateVendorPayload = CreateVendorPayload & {
+  isActive?: boolean
+}
+
+function mapVendor(raw: Record<string, unknown>): Vendor {
+  const isActiveRaw = raw.isActive ?? raw.IsActive
+  const isActive = isActiveRaw !== false
+  return {
+    id: Number(raw.id ?? raw.Id ?? 0),
+    name: String(raw.name ?? raw.Name ?? ''),
+    contactPerson: String(raw.contactPerson ?? raw.ContactPerson ?? ''),
+    phone: String(raw.phone ?? raw.Phone ?? ''),
+    email: String(raw.email ?? raw.Email ?? ''),
+    address: String(raw.address ?? raw.Address ?? ''),
+    notes: String(raw.notes ?? raw.Notes ?? ''),
+    isActive,
+    status: String(raw.status ?? raw.Status ?? (isActive ? 'Active' : 'Inactive')),
+    totalPurchases: Number(raw.totalPurchases ?? raw.TotalPurchases ?? 0),
+    createdAt: String(raw.createdAt ?? raw.CreatedAt ?? ''),
+  }
+}
 
 export async function fetchVendors(): Promise<Vendor[]> {
   try {
-    const { data } = await api.get<Vendor[]>('/api/vendors')
-    return data
+    const { data } = await api.get<Record<string, unknown>[]>('/api/vendors')
+    return data.map((row) => mapVendor(row))
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw new Error(extractApiErrorMessage(error, 'Failed to load vendors.'))
   }
 }
 
 export async function createVendor(payload: CreateVendorPayload): Promise<Vendor> {
   try {
-    const { data } = await api.post<Vendor>('/api/vendors', payload)
-    return data
+    const { data } = await api.post<Record<string, unknown>>('/api/vendors', payload)
+    return mapVendor(data)
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw new Error(extractApiErrorMessage(error, 'Failed to create vendor.'))
   }
 }
 
 export async function updateVendor(id: number, payload: UpdateVendorPayload): Promise<Vendor> {
   try {
-    const { data } = await api.put<Vendor>(`/api/vendors/${id}`, payload)
-    return data
+    const { data } = await api.put<Record<string, unknown>>(`/api/vendors/${id}`, payload)
+    return mapVendor(data)
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw new Error(extractApiErrorMessage(error, 'Failed to update vendor.'))
+  }
+}
+
+export async function deactivateVendor(id: number, current: Vendor): Promise<Vendor> {
+  try {
+    const { data } = await api.patch<Record<string, unknown>>(`/api/vendors/${id}/deactivate`)
+    return mapVendor(data)
+  } catch (error) {
+    if (!isAxiosNotFound(error)) {
+      throw new Error(extractApiErrorMessage(error, 'Failed to deactivate vendor.'))
+    }
+    return updateVendor(id, {
+      name: current.name,
+      contactPerson: current.contactPerson,
+      phone: current.phone,
+      email: current.email,
+      address: current.address,
+      notes: current.notes,
+      isActive: false,
+    })
   }
 }
 
@@ -87,6 +101,6 @@ export async function deleteVendor(id: number): Promise<void> {
   try {
     await api.delete(`/api/vendors/${id}`)
   } catch (error) {
-    throw new Error(extractErrorMessage(error))
+    throw new Error(extractApiErrorMessage(error, 'Failed to delete vendor.'))
   }
 }

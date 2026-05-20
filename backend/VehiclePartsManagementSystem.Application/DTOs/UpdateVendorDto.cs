@@ -21,5 +21,9 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public string Email { get; set; } = string.Empty;
 
         public string? Address { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool? IsActive { get; set; }
     }
 }

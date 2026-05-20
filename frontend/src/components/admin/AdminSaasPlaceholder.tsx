@@ -66,6 +66,22 @@ export function adminPlaceholderCopy(id: AdminPageId): { title: string; descript
       title: 'Manage Staff',
       description: 'Register staff accounts and assign Admin or Staff roles. Hook up to your user administration API.',
     },
+    'loyalty-program': {
+      title: 'Loyalty Program',
+      description: 'Configure loyalty tiers, discount thresholds, and qualifying order rules for dealership customers.',
+    },
+    'audit-logs': {
+      title: 'Audit Logs',
+      description: 'View a chronological trail of admin actions, authentication events, and system changes.',
+    },
+    'background-jobs': {
+      title: 'Background Jobs',
+      description: 'Monitor scheduled tasks such as credit reminders, low-stock alerts, and email delivery queues.',
+    },
+    'community-reviews': {
+      title: 'Review Moderation',
+      description: 'Approve or reject community reviews before they appear on the customer feedback feed.',
+    },
   }
   return (
     map[id] ?? {

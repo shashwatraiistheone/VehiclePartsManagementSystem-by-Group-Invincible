@@ -10,9 +10,14 @@ import {
   FileText,
   Check,
   Phone,
-  Clock
+  Clock,
+  X,
+  Loader2,
 } from 'lucide-react'
-import { getInvoices, markInvoiceAsPaid, sendInvoiceReminder, getToken, type Invoice } from '../../api'
+import { extractApiErrorMessage } from '../../lib/apiClient'
+import { getInvoices, markInvoiceAsPaid, recordInvoicePayment, type Invoice } from '../../api'
+import { sendCreditReminder } from '../../services/creditApi'
+import { formatMoney } from '../../utils/formatUsd'
 
 export function CreditManagementPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -22,17 +27,18 @@ export function CreditManagementPage() {
   const [filter, setFilter] = useState<'all' | 'unpaid' | 'overdue' | 'paid'>('all')
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [partialPayInvoice, setPartialPayInvoice] = useState<Invoice | null>(null)
+  const [partialAmount, setPartialAmount] = useState('')
+  const [partialError, setPartialError] = useState<string | null>(null)
 
   const fetchInvoices = async () => {
     try {
       setLoading(true)
       setError(null)
-      const token = getToken()
-      if (!token) return
-      const data = await getInvoices(token)
+      const data = await getInvoices()
       setInvoices(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch invoices')
+      setError(extractApiErrorMessage(err, 'Failed to fetch invoices.'))
     } finally {
       setLoading(false)
     }
@@ -42,46 +48,108 @@ export function CreditManagementPage() {
     fetchInvoices()
   }, [])
 
+  const invoiceBalance = (inv: Invoice) =>
+    inv.balanceAmount ?? (inv.isPaid ? 0 : (inv.sale?.totalAmount ?? 0))
+
   const handlePay = async (id: number) => {
-    if (!window.confirm('Are you sure you want to mark this invoice as Paid? This action is irreversible.')) return
+    if (!window.confirm('Mark this invoice as fully paid?')) return
     try {
       setActionLoading(id)
       setActionMessage(null)
-      const token = getToken()
-      if (!token) return
-      await markInvoiceAsPaid(token, id)
+      await markInvoiceAsPaid(undefined, id)
       setInvoices((prev) =>
-        prev.map((inv) => (inv.id === id ? { ...inv, isPaid: true } : inv))
+        prev.map((inv) =>
+          inv.id === id
+            ? { ...inv, isPaid: true, paymentStatus: 'Paid', paidAmount: inv.sale?.totalAmount ?? 0, balanceAmount: 0 }
+            : inv,
+        ),
       )
       setActionMessage({ type: 'success', text: 'Invoice successfully marked as Paid!' })
     } catch (err) {
-      setActionMessage({ type: 'error', text: err instanceof Error ? err.message : 'Payment update failed' })
+      setActionMessage({ type: 'error', text: extractApiErrorMessage(err, 'Payment update failed.') })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  function openPartialPayModal(inv: Invoice) {
+    const balance = invoiceBalance(inv)
+    setPartialPayInvoice(inv)
+    setPartialAmount(String(balance))
+    setPartialError(null)
+  }
+
+  function closePartialPayModal(force = false) {
+    if (!force && actionLoading != null) return
+    setPartialPayInvoice(null)
+    setPartialAmount('')
+    setPartialError(null)
+  }
+
+  const handlePartialPaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!partialPayInvoice) return
+    const balance = invoiceBalance(partialPayInvoice)
+    const amount = Number(partialAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPartialError('Enter a valid positive amount.')
+      return
+    }
+    if (amount > balance) {
+      setPartialError(`Amount cannot exceed balance of ${formatMoney(balance)}.`)
+      return
+    }
+    const id = partialPayInvoice.id
+    try {
+      setActionLoading(id)
+      setActionMessage(null)
+      setPartialError(null)
+      const res = await recordInvoicePayment(undefined, id, amount)
+      setInvoices((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                isPaid: res.isPaid,
+                paymentStatus: res.paymentStatus,
+                paidAmount: res.paidAmount,
+                balanceAmount: res.balanceAmount,
+              }
+            : i,
+        ),
+      )
+      setActionMessage({ type: 'success', text: res.message || 'Payment recorded.' })
+      closePartialPayModal(true)
+    } catch (err) {
+      setPartialError(extractApiErrorMessage(err, 'Partial payment failed.'))
     } finally {
       setActionLoading(null)
     }
   }
 
   const handleReminder = async (id: number) => {
+    const inv = invoices.find((i) => i.id === id)
+    if (!inv) return
+    const balance = invoiceBalance(inv)
+    if (!window.confirm(`Send payment reminder email for ${formatMoney(balance)} outstanding balance?`)) return
     try {
       setActionLoading(id)
       setActionMessage(null)
-      const token = getToken()
-      if (!token) return
-      const res = await sendInvoiceReminder(token, id)
+      const message = await sendCreditReminder(id)
       setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === id
+        prev.map((item) =>
+          item.id === id
             ? {
-                ...inv,
-                reminderSentCount: inv.reminderSentCount + 1,
-                lastReminderDate: new Date().toISOString()
+                ...item,
+                reminderSentCount: item.reminderSentCount + 1,
+                lastReminderDate: new Date().toISOString(),
               }
-            : inv
-        )
+            : item,
+        ),
       )
-      setActionMessage({ type: 'success', text: res.message || 'Reminder email successfully sent!' })
+      setActionMessage({ type: 'success', text: message || 'Reminder email successfully sent!' })
     } catch (err) {
-      setActionMessage({ type: 'error', text: err instanceof Error ? err.message : 'Sending reminder failed' })
+      setActionMessage({ type: 'error', text: extractApiErrorMessage(err, 'Sending reminder failed.') })
     } finally {
       setActionLoading(null)
     }
@@ -89,16 +157,15 @@ export function CreditManagementPage() {
 
   // Helper to check if invoice is older than 30 days
   const isOverdue = (inv: Invoice) => {
-    if (inv.isPaid) return false
-    const created = new Date(inv.createdDate)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    return created < thirtyDaysAgo
+    if (inv.isPaid || inv.paymentStatus === 'Paid') return false
+    const due = inv.dueDate ? new Date(inv.dueDate) : new Date(inv.createdDate)
+    if (!inv.dueDate) due.setDate(due.getDate() + 30)
+    return due < new Date()
   }
 
   // Derived metrics
-  const unpaidInvoices = invoices.filter((inv) => !inv.isPaid)
-  const totalOutstandingAmount = unpaidInvoices.reduce((sum, inv) => sum + (inv.sale?.totalAmount ?? 0), 0)
+  const unpaidInvoices = invoices.filter((inv) => !inv.isPaid && inv.paymentStatus !== 'Paid')
+  const totalOutstandingAmount = unpaidInvoices.reduce((sum, inv) => sum + invoiceBalance(inv), 0)
   
   const overdueInvoices = unpaidInvoices.filter((inv) => isOverdue(inv))
   const overdueCount = overdueInvoices.length
@@ -137,6 +204,19 @@ export function CreditManagementPage() {
           Refresh
         </button>
       </header>
+
+      <div className="rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-900">
+        <p className="font-semibold">Payment reminder emails</p>
+        <ul className="mt-1 list-inside list-disc space-y-0.5 text-blue-800/90">
+          <li>
+            <strong>Send reminder / Remind</strong> — manual email anytime there is a balance due (shows amount left to pay).
+          </li>
+          <li>
+            <strong>Automatic</strong> — system sends overdue emails every 24 hours when payment is 30+ days past due.
+          </li>
+        </ul>
+        <p className="mt-2 text-xs text-blue-700/80">Customer must have a real email address (not @partshub.local).</p>
+      </div>
 
       {/* Metrics Banner */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -274,7 +354,8 @@ export function CreditManagementPage() {
                   <th scope="col" className="px-6 py-4 font-semibold">Customer Details</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Invoice Date</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Due Date</th>
-                  <th scope="col" className="px-6 py-4 font-semibold">Amount</th>
+                  <th scope="col" className="px-6 py-4 font-semibold">Total</th>
+                  <th scope="col" className="px-6 py-4 font-semibold">Paid / Balance</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Status</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Reminders</th>
                   <th scope="col" className="px-6 py-4 font-semibold text-right">Actions</th>
@@ -287,8 +368,16 @@ export function CreditManagementPage() {
                   const isInvOverdue = isOverdue(inv)
                   const isActioning = actionLoading === inv.id
 
-                  const dueDate = new Date(inv.createdDate)
-                  dueDate.setDate(dueDate.getDate() + 30)
+                  const dueDate = inv.dueDate
+                    ? new Date(inv.dueDate)
+                    : (() => {
+                        const d = new Date(inv.createdDate)
+                        d.setDate(d.getDate() + 30)
+                        return d
+                      })()
+                  const balance = invoiceBalance(inv)
+                  const paid = inv.paidAmount ?? (inv.isPaid ? (inv.sale?.totalAmount ?? 0) : 0)
+                  const payStatus = inv.paymentStatus ?? (inv.isPaid ? 'Paid' : 'Credit')
 
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/50 transition font-medium">
@@ -337,17 +426,27 @@ export function CreditManagementPage() {
                         </div>
                       </td>
 
-                      {/* Amount */}
+                      {/* Total */}
                       <td className="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
                         Rs {(inv.sale?.totalAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
 
+                      {/* Paid / Balance */}
+                      <td className="px-6 py-4 whitespace-nowrap text-xs">
+                        <div className="text-emerald-700">Paid: Rs {paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                        <div className="font-bold text-amber-800">Balance: Rs {balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                      </td>
+
                       {/* Status badge */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {isPaid ? (
+                        {isPaid || payStatus === 'Paid' ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
                             <CheckCircle className="h-3 w-3" />
                             Paid
+                          </span>
+                        ) : payStatus === 'Partial' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
+                            Partial
                           </span>
                         ) : isInvOverdue ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-800 border border-red-200 animate-pulse">
@@ -357,7 +456,7 @@ export function CreditManagementPage() {
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
                             <Clock className="h-3 w-3" />
-                            Outstanding
+                            {payStatus === 'Credit' ? 'Credit' : 'Outstanding'}
                           </span>
                         )}
                       </td>
@@ -373,6 +472,18 @@ export function CreditManagementPage() {
                               Last: {new Date(inv.lastReminderDate).toLocaleDateString()}
                             </p>
                           )}
+                          {!isPaid && (
+                            <button
+                              type="button"
+                              onClick={() => handleReminder(inv.id)}
+                              disabled={isActioning}
+                              title={`Email outstanding balance: ${formatMoney(balance)}`}
+                              className="mt-1 inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-[10px] font-bold text-purple-700 hover:bg-purple-100 disabled:opacity-50"
+                            >
+                              <Mail className="h-3 w-3" />
+                              Send reminder
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -381,22 +492,29 @@ export function CreditManagementPage() {
                         <div className="flex items-center justify-end gap-2">
                           {!isPaid && (
                             <>
-                              {isInvOverdue && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleReminder(inv.id)}
-                                  disabled={isActioning}
-                                  title="Send Email Reminder"
-                                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700 hover:bg-red-100 transition disabled:opacity-50"
-                                >
-                                  {isActioning ? (
-                                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Mail className="h-3.5 w-3.5" />
-                                  )}
-                                  Remind
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleReminder(inv.id)}
+                                disabled={isActioning}
+                                title={`Send credit balance reminder (${formatMoney(balance)})`}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-3 text-xs font-bold text-purple-700 hover:bg-purple-100 transition disabled:opacity-50"
+                              >
+                                {isActioning ? (
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Mail className="h-3.5 w-3.5" />
+                                )}
+                                Remind
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => openPartialPayModal(inv)}
+                                disabled={isActioning}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-800 hover:bg-amber-100 transition disabled:opacity-50"
+                              >
+                                Partial pay
+                              </button>
 
                               <button
                                 type="button"
@@ -427,6 +545,126 @@ export function CreditManagementPage() {
           </div>
         )}
       </div>
+
+      {partialPayInvoice ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => closePartialPayModal()}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="partial-pay-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => closePartialPayModal()}
+              disabled={actionLoading === partialPayInvoice.id}
+              className="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h2 id="partial-pay-title" className="text-lg font-bold text-slate-900">
+              Record partial payment
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Invoice <span className="font-semibold text-slate-700">{partialPayInvoice.invoiceNumber}</span>
+              {partialPayInvoice.sale?.customer ? (
+                <> · {partialPayInvoice.sale.customer.name}</>
+              ) : null}
+            </p>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+              <div className="flex justify-between text-slate-600">
+                <span>Outstanding balance</span>
+                <span className="font-bold text-amber-800 tabular-nums">
+                  {formatMoney(invoiceBalance(partialPayInvoice))}
+                </span>
+              </div>
+              <div className="mt-1 flex justify-between text-slate-500">
+                <span>Invoice total</span>
+                <span className="tabular-nums">
+                  {formatMoney(partialPayInvoice.sale?.totalAmount ?? 0)}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handlePartialPaySubmit} className="mt-5 space-y-4">
+              <div>
+                <label htmlFor="partial-amount" className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  Payment amount (Rs)
+                </label>
+                <input
+                  id="partial-amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  max={invoiceBalance(partialPayInvoice)}
+                  value={partialAmount}
+                  onChange={(e) => {
+                    setPartialAmount(e.target.value)
+                    setPartialError(null)
+                  }}
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  placeholder="Enter amount to collect"
+                  autoFocus
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[
+                    { label: 'Full balance', value: invoiceBalance(partialPayInvoice) },
+                    { label: 'Half', value: Math.round((invoiceBalance(partialPayInvoice) / 2) * 100) / 100 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        setPartialAmount(String(preset.value))
+                        setPartialError(null)
+                      }}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                {partialError ? (
+                  <p className="mt-2 text-xs font-medium text-red-600">{partialError}</p>
+                ) : null}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => closePartialPayModal()}
+                  disabled={actionLoading === partialPayInvoice.id}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading === partialPayInvoice.id}
+                  className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {actionLoading === partialPayInvoice.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Recording…
+                    </>
+                  ) : (
+                    'Record payment'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

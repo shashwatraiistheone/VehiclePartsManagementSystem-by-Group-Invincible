@@ -13,7 +13,7 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Phone is required.")]
-        [Phone(ErrorMessage = "A valid phone number is required.")]
+        [StringLength(30, MinimumLength = 6, ErrorMessage = "Phone must be 6–30 characters.")]
         public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Password is required.")]

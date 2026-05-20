@@ -1,22 +1,9 @@
 import { useState } from 'react'
 import { CircleCheckBig, UserPlus } from 'lucide-react'
+import { createCustomerWithVehicles } from '../../services/customerApi'
 
 type Props = {
   onDone: () => void
-}
-
-function safeJson(text: string) {
-  if (!text) return null
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return null
-  }
-}
-
-function makeFallbackEmail(name: string, phone: string): string {
-  const local = `${name}-${phone}`.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '')
-  return `${local || 'customer'}.${Date.now()}@partshub.local`
 }
 
 export function AdminRegisterCustomerPage({ onDone }: Props) {
@@ -51,21 +38,24 @@ export function AdminRegisterCustomerPage({ onDone }: Props) {
 
     setSaving(true)
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL as string
-      const payload = {
+      const vNum = vehicleNumber.trim().toUpperCase()
+      const vType = vehicleType.trim()
+      await createCustomerWithVehicles({
         name: customerName.trim(),
-        email: makeFallbackEmail(customerName.trim(), parsedPhone),
         phone: parsedPhone,
-        address: `${address.trim()} | Vehicle: ${vehicleNumber.trim().toUpperCase()} (${vehicleType.trim()})`,
-      }
-      const res = await fetch(`${apiBase}/api/Customer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        address: address.trim(),
+        vehicles: vNum
+          ? [
+              {
+                vehicleNumber: vNum,
+                brand: vType || 'Unknown',
+                model: vType || 'Unknown',
+                year: new Date().getFullYear(),
+                mileage: 0,
+              },
+            ]
+          : [],
       })
-      const text = await res.text()
-      const data = safeJson(text) as { message?: string } | null
-      if (!res.ok) throw new Error((data && data.message) || 'Failed to save customer')
 
       setSuccess('Customer saved successfully. Redirecting to Manage Customers...')
       resetForm()

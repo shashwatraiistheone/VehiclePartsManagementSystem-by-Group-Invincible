@@ -1,49 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Search, UserPlus, Eye, Pencil, Trash2, X } from 'lucide-react'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error - CustomerHistory is plain JSX by design
 import CustomerHistory from './pages/CustomerHistory.jsx'
+import {
+  fetchCustomers,
+  updateCustomerProfile,
+  deleteCustomer,
+  addVehicle,
+} from './services/customerApi'
 
-function safeJson(text) {
-  if (!text) return null
-  try {
-    return JSON.parse(text)
-  } catch {
-    return null
-  }
+function formatLastVisit(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function inferVehicle(address) {
-  const raw = (address || '').trim()
-  if (!raw) return '—'
-  const fromNote = raw.match(/^Vehicle:\s*(.+)$/i)
-  if (fromNote?.[1]) return fromNote[1].trim()
-  return raw.split(',')[0] || raw
-}
-
-function mapRows(customers) {
-  return customers.map((c) => {
-    const purchases = (Math.abs((c.id || 1) * 11) % 8) + 1
-    const date = new Date(2025, (c.id % 12) || 1, ((c.id * 3) % 27) + 1)
-    const lastVisit = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    const status = purchases <= 1 ? 'Inactive' : 'Active'
-    return {
-      id: c.id,
-      name: c.name || '—',
-      phone: c.phone || '—',
-      vehicleNumber: inferVehicle(c.address),
-      totalPurchases: purchases,
-      lastVisit,
-      status,
-      raw: c,
-    }
-  })
+function primaryVehicle(vehicles) {
+  if (!vehicles?.length) return '—'
+  return vehicles[0].vehicleNumber || '—'
 }
 
 export default function CustomerList({ onNavigate }) {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -55,11 +36,7 @@ export default function CustomerList({ onNavigate }) {
     setLoading(true)
     setError(null)
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(`${apiBase}/api/Customer`)
-      const text = await res.text()
-      const data = safeJson(text)
-      if (!res.ok) throw new Error(data?.message || data?.title || 'Failed to load customers')
+      const data = await fetchCustomers()
       setCustomers(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err?.message ?? 'Failed to load customers')
@@ -70,11 +47,19 @@ export default function CustomerList({ onNavigate }) {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const rows = useMemo(() => {
-    const all = mapRows(customers)
+    const all = customers.map((c) => ({
+      id: c.id,
+      name: c.name || '—',
+      phone: c.phone || '—',
+      vehicleNumber: primaryVehicle(c.vehicles),
+      totalPurchases: c.totalPurchases ?? 0,
+      lastVisit: formatLastVisit(c.lastVisitDate),
+      status: c.status || (c.totalPurchases > 0 ? 'Active' : 'Inactive'),
+      raw: c,
+    }))
     const q = query.trim().toLowerCase()
     if (!q) return all
     return all.filter(
@@ -92,28 +77,49 @@ export default function CustomerList({ onNavigate }) {
     setEditVehicle(row.vehicleNumber === '—' ? '' : row.vehicleNumber)
   }
 
-  function saveEdit(e) {
+  async function saveEdit(e) {
     e.preventDefault()
     if (!editing) return
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === editing.id
-          ? {
-              ...c,
-              name: editName.trim(),
-              phone: editPhone.trim(),
-              address: editVehicle.trim() ? `Vehicle: ${editVehicle.trim()}` : c.address,
-            }
-          : c,
-      ),
-    )
-    setEditing(null)
+    setSaving(true)
+    setError(null)
+    try {
+      const vehicleNum = editVehicle.trim().toUpperCase()
+      await updateCustomerProfile(editing.id, {
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        address: editing.raw.address || '',
+      })
+
+      const existingVehicle = editing.raw.vehicles?.[0]
+      if (vehicleNum && !existingVehicle) {
+        await addVehicle(editing.id, {
+          vehicleNumber: vehicleNum,
+          brand: 'Unknown',
+          model: 'Unknown',
+          year: new Date().getFullYear(),
+          mileage: 0,
+        })
+      }
+
+      await load()
+      setEditing(null)
+    } catch (err) {
+      setError(err?.message ?? 'Failed to save customer')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete(row) {
     const ok = window.confirm(`Delete customer "${row.name}"?`)
     if (!ok) return
-    setCustomers((prev) => prev.filter((c) => c.id !== row.id))
+    setError(null)
+    try {
+      await deleteCustomer(row.id)
+      setCustomers((prev) => prev.filter((c) => c.id !== row.id))
+    } catch (err) {
+      setError(err?.message ?? 'Failed to delete customer')
+    }
   }
 
   return (
@@ -256,7 +262,9 @@ export default function CustomerList({ onNavigate }) {
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setEditing(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Cancel</button>
-                <button type="submit" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+                <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
               </div>
             </form>
           </div>

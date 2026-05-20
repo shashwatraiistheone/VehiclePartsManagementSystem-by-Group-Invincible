@@ -17,5 +17,12 @@ namespace VehiclePartsManagementSystem.Domain.Entities
         public bool IsPaid { get; set; } = false;
         public int ReminderSentCount { get; set; } = 0;
         public DateTime? LastReminderDate { get; set; }
+
+        /// <summary>Paid, Partial, or Credit.</summary>
+        public string PaymentStatus { get; set; } = InvoicePaymentStatus.Credit;
+
+        public DateTime DueDate { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal BalanceAmount { get; set; }
     }
 }

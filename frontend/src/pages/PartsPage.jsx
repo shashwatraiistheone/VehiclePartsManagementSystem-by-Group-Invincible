@@ -116,7 +116,7 @@ export default function PartsPage() {
                     <tr key={p.id}>
                       <td className="muted">{p.id}</td>
                       <td>{p.name}</td>
-                      <td>${Number(p.price).toFixed(2)}</td>
+                      <td>Rs {Number(p.price).toFixed(2)}</td>
                       <td>{p.quantity}</td>
                     </tr>
                   ))}

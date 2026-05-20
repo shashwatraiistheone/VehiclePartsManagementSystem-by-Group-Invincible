@@ -14,8 +14,8 @@ export function FeatureGridCard({ title, description, Icon, onClick }: Props) {
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={[
-        'flex w-full flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 text-left shadow-sm',
-        'transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md',
+        'vms-card-hover flex w-full flex-col gap-3 p-5 text-left',
+        'hover:border-primary-600/30',
         onClick ? 'cursor-pointer' : '',
       ]
         .filter(Boolean)
@@ -25,8 +25,8 @@ export function FeatureGridCard({ title, description, Icon, onClick }: Props) {
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <div>
-        <h3 className="font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-slate-600">{description}</p>
+        <h3 className="font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{description}</p>
       </div>
     </Tag>
   )

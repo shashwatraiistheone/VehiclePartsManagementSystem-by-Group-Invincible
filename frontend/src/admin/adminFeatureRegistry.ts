@@ -134,7 +134,7 @@ export const ADMIN_FEATURES_16: AdminFeature16[] = [
     id: 15,
     title: 'Low Stock Notification and Credit Reminder System',
     description: 'Automated low-stock and credit follow-ups.',
-    status: 'Pending',
+    status: 'Completed',
     Icon: BellRing,
   },
   {

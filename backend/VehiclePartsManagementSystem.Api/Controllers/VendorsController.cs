@@ -93,6 +93,20 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             }
         }
 
+        [HttpPatch("{id:int}/deactivate")]
+        [ProducesResponseType(typeof(VendorResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<VendorResponseDto>> Deactivate(int id, CancellationToken cancellationToken)
+        {
+            var updated = await _vendorService.DeactivateAsync(id, cancellationToken);
+            if (updated == null)
+            {
+                return NotFound(new { message = "Vendor not found." });
+            }
+
+            return Ok(updated);
+        }
+
         [HttpDelete("{id:int}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Check, Eye, RefreshCw, Search, Bell, Inbox, AlertCircle } from 'lucide-react'
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, getToken, type Notification } from '../../api'
+import { useToast } from '../ui/ToastProvider'
 
 export function SystemAlerts() {
+  const { showToast } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -16,7 +18,7 @@ export function SystemAlerts() {
       const token = getToken()
       if (!token) return
       const data = await getNotifications(token)
-      setNotifications(data)
+      setNotifications(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch alerts')
     } finally {
@@ -35,7 +37,7 @@ export function SystemAlerts() {
       await markNotificationAsRead(token, id)
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Action failed')
+      showToast(err instanceof Error ? err.message : 'Action failed', 'error')
     }
   }
 
@@ -46,16 +48,18 @@ export function SystemAlerts() {
       await markAllNotificationsAsRead(token)
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Action failed')
+      showToast(err instanceof Error ? err.message : 'Action failed', 'error')
     }
   }
 
+  const list = Array.isArray(notifications) ? notifications : []
+
   // Active unread count
-  const activeAlerts = notifications.filter((n) => !n.isRead)
+  const activeAlerts = list.filter((n) => !n.isRead)
   const stockAlertsCount = activeAlerts.filter((n) => n.type === 'LowStock').length
   const creditAlertsCount = activeAlerts.filter((n) => n.type === 'UnpaidCredit').length
 
-  const filtered = notifications
+  const filtered = list
     .filter((n) => {
       if (filter === 'stock') return n.type === 'LowStock'
       if (filter === 'credit') return n.type === 'UnpaidCredit'
@@ -117,7 +121,7 @@ export function SystemAlerts() {
               filter === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            All Alerts ({notifications.length})
+            All Alerts ({list.length})
           </button>
           <button
             type="button"

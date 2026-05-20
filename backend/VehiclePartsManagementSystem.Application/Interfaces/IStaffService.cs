@@ -11,5 +11,7 @@ namespace VehiclePartsManagementSystem.Application.Interfaces
         Task<bool> DeactivateAsync(int id, CancellationToken cancellationToken = default);
         Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
         Task<AuthResponseDto> LoginAsync(LoginDto dto, CancellationToken cancellationToken = default);
+
+        Task ChangePasswordAsync(int id, ChangeCustomerPasswordDto dto, CancellationToken cancellationToken = default);
     }
 }

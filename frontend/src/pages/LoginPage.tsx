@@ -1,34 +1,18 @@
 import { useEffect, useState } from 'react'
-import {
-  ShieldCheckIcon,
-  CubeIcon,
-  PresentationChartLineIcon,
-} from '@heroicons/react/24/outline'
-import { setToken } from '../api'
-import { loginStaff } from '../services/staffApi'
+import { ArrowPathIcon } from '@heroicons/react/24/outline'
+import { login } from '../services/authApi'
+import { persistAuthSession } from '../lib/auth'
+import { AuthLayout } from '../components/auth/AuthLayout'
+import { AuthToast } from '../components/auth/AuthToast'
+import { PasswordInput } from '../components/auth/PasswordInput'
 
 const REMEMBER_EMAIL_KEY = 'partsHubRememberEmail'
 
-const features = [
-  {
-    Icon: ShieldCheckIcon,
-    title: 'Secure & Reliable',
-    description: 'Protected access and audited authentication.',
-  },
-  {
-    Icon: CubeIcon,
-    title: 'Real-time Inventory',
-    description: 'Parts and stock updates when your team makes changes.',
-  },
-  {
-    Icon: PresentationChartLineIcon,
-    title: 'Business Analytics',
-    description: 'Dashboard insights for smarter ordering and sales.',
-  },
-] as const
+const inputClass =
+  'w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15'
 
 export default function LoginPage(props: {
-  onLoggedIn: () => void
+  onLoggedIn: (role: string) => void
   onGoRegister: () => void
 }) {
   const [email, setEmail] = useState('')
@@ -36,6 +20,7 @@ export default function LoginPage(props: {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -50,19 +35,23 @@ export default function LoginPage(props: {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setLoading(true)
     try {
-      const res = await loginStaff({ email: email.trim(), password })
-      setToken(res.token)
-      localStorage.setItem('userId', String(res.userId))
-      localStorage.setItem('userName', res.name)
-      localStorage.setItem('userRole', res.role)
+      const res = await login({ email: email.trim(), password })
+      persistAuthSession({
+        token: res.token,
+        userId: res.userId,
+        name: res.name,
+        role: res.role,
+      })
       if (rememberMe) {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim())
       } else {
         localStorage.removeItem(REMEMBER_EMAIL_KEY)
       }
-      props.onLoggedIn()
+      setSuccess('Signed in successfully. Redirecting…')
+      props.onLoggedIn(res.role)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       setError(msg)
@@ -72,150 +61,98 @@ export default function LoginPage(props: {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50">
-      {/* Left: brand & highlights (~60% on large screens) */}
-      <aside
+    <AuthLayout>
+      <div
         className={[
-          'relative order-2 flex flex-1 flex-col justify-center overflow-hidden px-8 py-14 sm:px-12 lg:order-1 lg:flex-[0_0_60%] lg:max-w-none lg:py-16 lg:pl-14 lg:pr-10',
-          'bg-gradient-to-br from-slate-950 via-blue-950 to-blue-600 text-white',
-          'transition-opacity duration-700 ease-out',
-          mounted ? 'opacity-100' : 'opacity-0',
+          'rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl shadow-slate-900/[0.04] transition-all duration-500 sm:p-10',
+          mounted ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
         ].join(' ')}
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_30%_20%,rgba(96,165,250,0.25),transparent)]"
-        />
-        <div className="relative z-10 mx-auto w-full max-w-xl">
-          <h1 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.35rem] lg:leading-tight">
-            PartsHub
-          </h1>
-          <p className="mb-10 max-w-lg text-base leading-relaxed text-blue-100/95 sm:text-lg">
-            Manage vehicle parts inventory, staff, and operations efficiently in one place.
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Welcome Back</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            Sign in to access your account. Staff and admin accounts are provisioned by your
+            organization.
           </p>
-          <ul className="flex flex-col gap-5">
-            {features.map(({ Icon, title, description }) => (
-              <li
-                key={title}
-                className="group flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition duration-300 hover:border-white/20 hover:bg-white/10"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15 transition group-hover:scale-105 group-hover:bg-white/15">
-                  <Icon className="h-6 w-6 text-blue-100" aria-hidden />
-                </span>
-                <div>
-                  <p className="font-semibold text-white">{title}</p>
-                  <p className="mt-0.5 text-sm text-blue-100/85">{description}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
         </div>
-      </aside>
 
-      {/* Right: login card (~40%) */}
-      <main className="order-1 flex w-full flex-1 items-center justify-center px-4 py-10 sm:px-8 lg:order-2 lg:flex-[0_0_40%] lg:px-10 lg:py-12">
-        <div
-          className={[
-            'w-full max-md:max-w-md transition-all duration-500 ease-out',
-            mounted ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
-          ].join(' ')}
-        >
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-slate-900/5 sm:p-10">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Welcome Back</h2>
-              <p className="mt-1 text-sm text-slate-500">Sign in to access your account</p>
-            </div>
-
-            <form className="flex flex-col gap-5" onSubmit={onSubmit}>
-              <div>
-                <label
-                  htmlFor="login-email"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Email
-                </label>
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-500/20 transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4"
-                />
-                <p className="mt-1 text-xs text-slate-400">Use the email address registered on your account.</p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="login-password"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Password
-                </label>
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-500/20 transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  id="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="remember-me" className="text-sm text-slate-600 select-none">
-                  Remember me
-                </label>
-              </div>
-
-              {error ? (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-                >
-                  {error}
-                </div>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 via-blue-600 to-blue-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition duration-300 hover:from-blue-500 hover:via-blue-500 hover:to-blue-400 hover:shadow-xl hover:shadow-blue-600/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="relative z-10">{loading ? 'Signing in…' : 'Login'}</span>
-                <span
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 transition duration-300 group-hover:opacity-100 group-hover:translate-x-full translate-x-[-100%]"
-                />
-              </button>
-            </form>
-
-            <p className="mt-8 text-center text-sm text-slate-500">
-              No account?{' '}
-              <button
-                type="button"
-                onClick={props.onGoRegister}
-                className="font-semibold text-blue-600 underline-offset-2 transition hover:text-blue-700 hover:underline"
-              >
-                Create one
-              </button>
+        <form className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
+          <div>
+            <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-slate-700">
+              Username
+            </label>
+            <input
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+              required
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Use the email address registered on your account.
             </p>
           </div>
+
+          <div>
+            <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <PasswordInput
+              id="login-password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 transition focus:ring-2 focus:ring-blue-500/30"
+            />
+            <label htmlFor="remember-me" className="text-sm text-slate-600 select-none">
+              Remember me
+            </label>
+          </div>
+
+          {error ? <AuthToast message={error} variant="error" onDismiss={() => setError(null)} /> : null}
+          {success ? <AuthToast message={success} variant="success" /> : null}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition duration-300 hover:from-blue-500 hover:to-blue-400 hover:shadow-xl hover:shadow-blue-600/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-65"
+          >
+            {loading ? (
+              <>
+                <ArrowPathIcon className="h-5 w-5 animate-spin" aria-hidden />
+                Signing in…
+              </>
+            ) : (
+              'Login'
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 space-y-3 border-t border-slate-100 pt-6">
+          <p className="text-center text-sm text-slate-500">New customer?</p>
+          <button
+            type="button"
+            onClick={props.onGoRegister}
+            className="w-full rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm font-semibold text-blue-700 shadow-sm transition duration-200 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/25"
+          >
+            Customer Registration
+          </button>
         </div>
-      </main>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }

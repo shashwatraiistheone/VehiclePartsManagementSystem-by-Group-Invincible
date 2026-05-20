@@ -7,9 +7,13 @@ type Props = {
 
 export function AppShell({ sidebar, children }: Props) {
   return (
-    <div className="flex min-h-screen w-full max-w-full flex-col bg-gray-100 md:flex-row">
-      {sidebar}
-      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8">{children}</main>
+    <div className="flex min-h-[100dvh] w-full bg-slate-50 transition-colors dark:bg-slate-950 max-md:flex-col md:flex-row">
+      <div className="sticky top-0 z-30 shrink-0 self-start max-md:max-h-0 max-md:overflow-visible md:h-[100dvh]">
+        {sidebar}
+      </div>
+      <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-14 sm:p-6 md:pt-6 lg:p-8">
+        <div className="vms-page">{children}</div>
+      </main>
     </div>
   )
 }

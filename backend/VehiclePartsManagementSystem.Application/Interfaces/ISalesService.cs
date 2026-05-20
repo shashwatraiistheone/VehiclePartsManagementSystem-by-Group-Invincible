@@ -8,6 +8,7 @@ namespace VehiclePartsManagementSystem.Application.Interfaces
     {
         Task<SaleResponseDto> CreateSaleAsync(CreateSaleDto dto);
         Task<List<SaleResponseDto>> GetAllSalesAsync();
+        Task<SaleResponseDto?> GetSaleByIdAsync(int saleId);
         Task SendInvoiceEmailAsync(int saleId, string? customEmail);
     }
 }

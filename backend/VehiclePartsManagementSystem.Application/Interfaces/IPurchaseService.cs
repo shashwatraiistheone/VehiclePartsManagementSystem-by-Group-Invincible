@@ -8,6 +8,7 @@ namespace VehiclePartsManagementSystem.Application.Interfaces
     {
         Task<PurchaseResponseDto> CreatePurchaseAsync(CreatePurchaseDto dto);
         Task<List<PurchaseResponseDto>> GetAllPurchasesAsync();
+        Task<PurchaseResponseDto?> GetPurchaseByIdAsync(int id);
     }
 }
 

@@ -1,21 +1,25 @@
-import { useEffect, useState } from 'react'
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useParams } from 'react-router-dom'
 import { AppShell } from '../layout/AppShell'
 import { StaffPanelSidebar } from './StaffPanelSidebar'
 import { CustomerManagementPage } from './CustomerManagementPage'
 import { StaffHomePage } from './StaffHomePage'
+import { StaffDashboardPage } from './StaffDashboardPage'
 import { StaffRegisterCustomerPage } from './StaffRegisterCustomerPage'
-import { StaffSearchSalePage } from './StaffSearchSalePage'
+import { SearchSalePage } from '../sales/SearchSalePage'
+import { staffCreateSalePath } from '../../staff/staffRoutes'
 import { StaffSalesHistoryPage } from './StaffSalesHistoryPage'
 import { StaffReportsPage } from './StaffReportsPage'
+import { StaffTopSpendersReportPage } from './reports/StaffTopSpendersReportPage'
+import { StaffRegularCustomersReportPage } from './reports/StaffRegularCustomersReportPage'
+import { StaffPendingCreditReportPage } from './reports/StaffPendingCreditReportPage'
+import { StaffPartRequestsPage } from './StaffPartRequestsPage'
+import { StaffCustomerProfilePage } from './customers/StaffCustomerProfilePage'
 import { AppointmentsPage } from './AppointmentsPage'
-import { SectionPlaceholder } from '../../pages/SectionPlaceholder'
-import { CreditManagementPage } from '../admin/CreditManagementPage'
-import { STAFF_PART_REQUESTS_ENABLED, staffPath } from '../../staff/staffRoutes'
-import type { Customer, CustomerInput } from './customerModule'
-import { INITIAL_CUSTOMERS } from './customerModule'
-
-const STORAGE_KEY = 'partshub_staff_customers_v1'
+import { StaffAppointmentDetailsPage } from './appointments/StaffAppointmentDetailsPage'
+import { StaffCreditManagementPage } from './StaffCreditManagementPage'
+import { StaffCreditCollectPaymentPage } from './StaffCreditCollectPaymentPage'
+import { AdminReviewsPage } from '../admin/AdminReviewsPage'
+import { staffPath } from '../../staff/staffRoutes'
 
 type Props = {
   onLogout: () => void
@@ -31,103 +35,42 @@ function StaffLayout({ onLogout }: Props) {
   )
 }
 
-function getInitialState(): Customer[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return INITIAL_CUSTOMERS
-    const parsed = JSON.parse(raw) as Customer[]
-    return Array.isArray(parsed) ? parsed : INITIAL_CUSTOMERS
-  } catch {
-    return INITIAL_CUSTOMERS
+/** Legacy invoice URLs → unified Search & Sale with customer pre-selected. */
+function LegacyStaffInvoiceRedirect() {
+  const { customerId } = useParams<{ customerId: string }>()
+  const id = Number(customerId)
+  if (!Number.isFinite(id) || id <= 0) {
+    return <Navigate to="/staff/search-sale" replace />
   }
+  return <Navigate to={staffCreateSalePath(id)} replace />
 }
 
 export function StaffWorkspace({ onLogout }: Props) {
-  const [customers, setCustomers] = useState<Customer[]>(() => getInitialState())
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(customers))
-  }, [customers])
-
-  function addCustomer(payload: CustomerInput) {
-    setCustomers((prev) => [
-      {
-        id: Date.now(),
-        ...payload,
-        totalPurchases: 0,
-        lastVisit: new Date().toISOString(),
-        status: 'Active',
-      },
-      ...prev,
-    ])
-  }
-
-  function updateCustomer(id: number, payload: CustomerInput) {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...payload } : c)),
-    )
-  }
-
-  function deleteCustomer(id: number) {
-    setCustomers((prev) => prev.filter((c) => c.id !== id))
-  }
-
-  function recordSale(customerId: number, totalLines: number) {
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === customerId
-          ? {
-              ...c,
-              totalPurchases: c.totalPurchases + totalLines,
-              lastVisit: new Date().toISOString(),
-              status: 'Active',
-            }
-          : c,
-      ),
-    )
-  }
-
   return (
     <Routes>
       <Route path="/staff" element={<StaffLayout onLogout={onLogout} />}>
         <Route index element={<Navigate to="home" replace />} />
         <Route path="home" element={<StaffHomePage />} />
-        <Route path="dashboard" element={<StaffHomePage />} />
-        <Route
-          path="manage-customers"
-          element={
-            <CustomerManagementPage
-              customers={customers}
-              onUpdateCustomer={updateCustomer}
-              onDeleteCustomer={deleteCustomer}
-            />
-          }
-        />
-        <Route path="register-customer" element={<StaffRegisterCustomerPage onRegister={addCustomer} />} />
-        <Route
-          path="search-sale"
-          element={<StaffSearchSalePage customers={customers} onRecordSale={recordSale} />}
-        />
+        <Route path="dashboard" element={<StaffDashboardPage />} />
+        <Route path="manage-customers" element={<CustomerManagementPage />} />
+        <Route path="customers/:id" element={<StaffCustomerProfilePage />} />
+        <Route path="register-customer" element={<StaffRegisterCustomerPage />} />
+        <Route path="search-sale" element={<SearchSalePage />} />
+        <Route path="search-sale/:customerId/invoice" element={<LegacyStaffInvoiceRedirect />} />
         <Route path="sales-history" element={<StaffSalesHistoryPage />} />
-        <Route path="credit-management" element={<CreditManagementPage />} />
+        <Route path="credit-management" element={<StaffCreditManagementPage />} />
+        <Route path="credit-management/:invoiceId/collect" element={<StaffCreditCollectPaymentPage />} />
         <Route path="customer-reports" element={<StaffReportsPage />} />
+        <Route path="customer-reports/top-spenders" element={<StaffTopSpendersReportPage />} />
+        <Route path="customer-reports/regular-customers" element={<StaffRegularCustomersReportPage />} />
+        <Route path="customer-reports/pending-credits" element={<StaffPendingCreditReportPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
-        <Route
-          path="part-requests"
-          element={
-            STAFF_PART_REQUESTS_ENABLED ? (
-              <SectionPlaceholder
-                title="Part Requests"
-                description="Internal and customer part requests will appear here."
-              />
-            ) : (
-              <Navigate to={staffPath('home')} replace />
-            )
-          }
-        />
+        <Route path="appointments/:id" element={<StaffAppointmentDetailsPage />} />
+        <Route path="part-requests" element={<StaffPartRequestsPage />} />
+        <Route path="community-reviews" element={<AdminReviewsPage />} />
         <Route path="*" element={<Navigate to="/staff/home" replace />} />
       </Route>
-      <Route path="*" element={<Navigate to="/staff/home" replace />} />
+      <Route path="*" element={<Navigate to={staffPath('home')} replace />} />
     </Routes>
   )
 }

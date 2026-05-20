@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VehiclePartsManagementSystem.Application.DTOs;
+using VehiclePartsManagementSystem.Application.Helpers;
 using VehiclePartsManagementSystem.Application.Interfaces;
 
 namespace VehiclePartsManagementSystem.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Staff")]
     public class SalesController : ControllerBase
     {
         private readonly ISalesService _salesService;
@@ -36,9 +39,26 @@ namespace VehiclePartsManagementSystem.Api.Controllers
             return Ok(sales);
         }
 
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<SaleResponseDto>> GetById(int id)
+        {
+            var sale = await _salesService.GetSaleByIdAsync(id);
+            if (sale == null)
+            {
+                return NotFound(new { message = "Sale not found." });
+            }
+
+            return Ok(sale);
+        }
+
         [HttpPost("{saleId:int}/send-invoice")]
         public async Task<IActionResult> SendInvoice(int saleId, [FromBody] SendInvoiceDto? dto)
         {
+            if (!string.IsNullOrWhiteSpace(dto?.Email) && !EmailValidator.CanSendTo(dto.Email))
+            {
+                return BadRequest(new { message = "Please provide a valid email address." });
+            }
+
             try
             {
                 await _salesService.SendInvoiceEmailAsync(saleId, dto?.Email);

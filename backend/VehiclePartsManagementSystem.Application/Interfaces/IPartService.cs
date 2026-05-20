@@ -9,6 +9,8 @@ namespace VehiclePartsManagementSystem.Application.Interfaces
         Task<List<PartResponseDto>> GetAllPartsAsync();
         Task<PartResponseDto?> GetPartByIdAsync(int id);
         Task<PartResponseDto> CreatePartAsync(CreatePartDto dto);
+        Task<PartResponseDto?> UpdatePartAsync(int id, UpdatePartDto dto);
+        Task<PartResponseDto?> DeactivatePartAsync(int id);
         Task<bool> DeletePartAsync(int id);
     }
 }

@@ -9,7 +9,7 @@ namespace VehiclePartsManagementSystem.Application.Validators
         {
             RuleFor(x => x.FullName).NotEmpty().MinimumLength(2).MaximumLength(120);
             RuleFor(x => x.Email).NotEmpty().EmailAddress();
-            RuleFor(x => x.Phone).NotEmpty();
+            RuleFor(x => x.Phone).NotEmpty().MinimumLength(6).MaximumLength(30);
             RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
             RuleFor(x => x.Role).Must(r => r is "Admin" or "Staff")
                 .WithMessage("Role must be Admin or Staff.");

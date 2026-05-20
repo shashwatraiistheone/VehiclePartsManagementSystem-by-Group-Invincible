@@ -1,4 +1,4 @@
-/* Vehicle Parts MS — app shell & components */
+/* Vehicle Management System — app shell & components */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
@@ -8,8 +8,8 @@
   --sidebar-border: #1e293b;
   --sidebar-text: #94a3b8;
   --sidebar-text-active: #f8fafc;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
   --accent-muted: rgba(59, 130, 246, 0.12);
   --danger: #ef4444;
   --danger-hover: #dc2626;
@@ -23,6 +23,17 @@
   --radius-sm: 8px;
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.05), 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+html.dark {
+  --page-bg: #020617;
+  --surface: #0f172a;
+  --surface-elevated: #1e293b;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --sidebar-bg: #020617;
+  --sidebar-border: #1e293b;
 }
 
 * {
@@ -670,4 +681,48 @@ code {
   border-radius: 6px;
   font-size: 0.8125rem;
   color: #475569;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes stockFlash {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  25%,
+  75% {
+    background-color: rgba(254, 226, 226, 0.9);
+  }
+  50% {
+    background-color: rgba(254, 202, 202, 1);
+  }
+}
+
+.inventory-row-highlight {
+  animation: inventoryRowPulse 2s ease-in-out 2;
+}
+
+@keyframes inventoryRowPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(248, 113, 113, 0.12);
+  }
+}
+
+.inventory-stock-flash {
+  animation: stockFlash 1.2s ease-in-out 2;
+  border-radius: 8px;
 }

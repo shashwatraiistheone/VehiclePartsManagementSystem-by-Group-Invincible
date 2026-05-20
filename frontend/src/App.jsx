@@ -230,8 +230,8 @@ function LoginPage({ onSuccess }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
-        <h1 className="text-center text-2xl font-bold text-slate-900">VParts Hub</h1>
-        <p className="mb-6 mt-1 text-center text-sm text-slate-500">Vehicle Parts Management System</p>
+        <h1 className="text-center text-2xl font-bold text-slate-900">Vehicle Management System</h1>
+        <p className="mb-6 mt-1 text-center text-sm text-slate-500">Inventory, sales & operations</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-sm">
@@ -288,7 +288,7 @@ function LoginPage({ onSuccess }) {
 function TopNavbar({ userName, onLogout }) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6">
-      <span className="text-lg font-bold text-slate-900">VParts Hub</span>
+      <span className="text-lg font-bold text-slate-900">Vehicle Management System</span>
       <div className="flex items-center gap-3 sm:gap-4">
         <span className="hidden text-sm text-slate-600 sm:inline">
           Signed in as <strong className="text-slate-900">{userName}</strong>
@@ -413,7 +413,7 @@ function StaffListHeader({ onAdd }) {
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Staff management</h2>
-        <p className="text-sm text-slate-500">Register and manage staff accounts (mock data).</p>
+        <p className="text-sm text-slate-500">Register and manage staff accounts.</p>
       </div>
       <button
         type="button"

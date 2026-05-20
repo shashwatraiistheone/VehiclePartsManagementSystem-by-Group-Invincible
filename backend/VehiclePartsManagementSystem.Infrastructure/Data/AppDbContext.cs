@@ -16,11 +16,23 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
         public DbSet<Vendor> Vendors => Set<Vendor>();
         public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
         public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
+        public DbSet<InventoryStockLog> InventoryStockLogs => Set<InventoryStockLog>();
         public DbSet<Sale> Sales => Set<Sale>();
         public DbSet<SaleItem> SaleItems => Set<SaleItem>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
+        public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
         public DbSet<ServiceAppointment> ServiceAppointments => Set<ServiceAppointment>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<InventoryNotification> InventoryNotifications => Set<InventoryNotification>();
+        public DbSet<CustomerVehicle> CustomerVehicles => Set<CustomerVehicle>();
+        public DbSet<PartRequest> PartRequests => Set<PartRequest>();
+        public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<CommunityReview> CommunityReviews => Set<CommunityReview>();
+        public DbSet<FuelUsageLog> FuelUsageLogs => Set<FuelUsageLog>();
+        public DbSet<EmailLog> EmailLogs => Set<EmailLog>();
+        public DbSet<EmailReminderLog> EmailReminderLogs => Set<EmailReminderLog>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +79,21 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
                 .HasForeignKey(p => p.VendorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<InventoryNotification>()
+                .HasOne(n => n.Part)
+                .WithMany()
+                .HasForeignKey(n => n.PartId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InventoryNotification>()
+                .HasIndex(n => new { n.PartId, n.IsRead });
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(p => p.Vendor)
+                .WithMany(v => v.PurchaseInvoices)
+                .HasForeignKey(p => p.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<PurchaseInvoice>()
                 .HasMany(p => p.Items)
                 .WithOne(i => i.PurchaseInvoice)
@@ -78,6 +105,15 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(i => i.PartId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<InventoryStockLog>()
+                .HasOne(l => l.Part)
+                .WithMany()
+                .HasForeignKey(l => l.PartId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InventoryStockLog>()
+                .HasIndex(l => new { l.PartId, l.CreatedAt });
 
             modelBuilder.Entity<Sale>()
                 .HasOne(s => s.Customer)
@@ -112,6 +148,111 @@ namespace VehiclePartsManagementSystem.Infrastructure.Data
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.InvoiceNumber)
                 .IsUnique();
+
+            modelBuilder.Entity<InvoicePayment>()
+                .HasOne(p => p.Invoice)
+                .WithMany()
+                .HasForeignKey(p => p.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CustomerVehicle>()
+                .HasOne(v => v.Customer)
+                .WithMany(c => c.Vehicles)
+                .HasForeignKey(v => v.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CustomerVehicle>()
+                .HasIndex(v => v.VehicleNumber);
+
+            modelBuilder.Entity<PartRequest>()
+                .HasOne(p => p.Customer)
+                .WithMany(c => c.PartRequests)
+                .HasForeignKey(p => p.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PartRequest>()
+                .HasOne(p => p.Vehicle)
+                .WithMany()
+                .HasForeignKey(p => p.VehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PartRequest>()
+                .HasOne(p => p.FulfilledByStaff)
+                .WithMany()
+                .HasForeignKey(p => p.FulfilledByStaffId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.Customer)
+                .WithMany(c => c.Reviews)
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommunityReview>()
+                .HasOne(r => r.Customer)
+                .WithMany()
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommunityReview>()
+                .HasIndex(r => r.CustomerId);
+
+            modelBuilder.Entity<FuelUsageLog>()
+                .HasOne(f => f.Customer)
+                .WithMany()
+                .HasForeignKey(f => f.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FuelUsageLog>()
+                .HasOne(f => f.Vehicle)
+                .WithMany()
+                .HasForeignKey(f => f.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FuelUsageLog>()
+                .HasIndex(f => f.CustomerId);
+
+            modelBuilder.Entity<EmailLog>()
+                .HasOne(e => e.Customer)
+                .WithMany()
+                .HasForeignKey(e => e.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmailLog>()
+                .HasOne(e => e.Invoice)
+                .WithMany()
+                .HasForeignKey(e => e.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmailLog>()
+                .HasIndex(e => e.InvoiceId);
+
+            modelBuilder.Entity<EmailReminderLog>()
+                .HasOne(e => e.Customer)
+                .WithMany()
+                .HasForeignKey(e => e.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmailReminderLog>()
+                .HasOne(e => e.Invoice)
+                .WithMany()
+                .HasForeignKey(e => e.CreditPaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmailReminderLog>()
+                .HasIndex(e => new { e.CustomerId, e.SentAt });
+
+            modelBuilder.Entity<EmailReminderLog>()
+                .HasIndex(e => e.CreditPaymentId);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Timestamp);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Action);
+
+            modelBuilder.Entity<BackgroundJobRun>()
+                .HasIndex(j => new { j.JobKey, j.StartedAt });
         }
     }
 }

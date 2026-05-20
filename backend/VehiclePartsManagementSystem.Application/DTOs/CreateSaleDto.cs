@@ -20,5 +20,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         [Required]
         [MinLength(1, ErrorMessage = "At least one sale item is required")]
         public List<CreateSaleItemDto> Items { get; set; } = new();
+
+        /// <summary>Paid or Credit (defaults to Credit).</summary>
+        public string? PaymentStatus { get; set; }
     }
 }

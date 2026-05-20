@@ -12,6 +12,8 @@ namespace VehiclePartsManagementSystem.Application.DTOs
     public class PurchaseHistoryDto
     {
         public int SaleId { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty;
         public string Date { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
         public decimal Discount { get; set; }
@@ -34,7 +36,21 @@ namespace VehiclePartsManagementSystem.Application.DTOs
         public int AppointmentId { get; set; }
         public string ServiceType { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public string? VehicleNumber { get; set; }
         public string Date { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+        public string? AssignedStaff { get; set; }
+    }
+
+    public class VehicleHistoryDto
+    {
+        public int Id { get; set; }
+        public string VehicleNumber { get; set; } = string.Empty;
+        public string Brand { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public int Year { get; set; }
+        public int Mileage { get; set; }
+        public string? LastServiceDate { get; set; }
     }
 }
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VehiclePartsManagementSystem.Application.DTOs;
+using VehiclePartsManagementSystem.Application.Helpers;
 using VehiclePartsManagementSystem.Application.Interfaces;
 using VehiclePartsManagementSystem.Domain.Entities;
 using VehiclePartsManagementSystem.Infrastructure.Data;
@@ -86,11 +87,18 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             await _db.SaveChangesAsync();
 
             var invoiceNumber = await GenerateUniqueInvoiceNumberAsync(sale.Id);
+            var requestedStatus = dto.PaymentStatus?.Trim() ?? InvoicePaymentStatus.Credit;
+            var isPaid = string.Equals(requestedStatus, InvoicePaymentStatus.Paid, StringComparison.OrdinalIgnoreCase);
             var invoice = new Invoice
             {
                 SaleId = sale.Id,
                 InvoiceNumber = invoiceNumber,
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.UtcNow,
+                DueDate = DateTime.UtcNow.AddDays(30),
+                PaymentStatus = isPaid ? InvoicePaymentStatus.Paid : InvoicePaymentStatus.Credit,
+                PaidAmount = isPaid ? finalTotal : 0m,
+                BalanceAmount = isPaid ? 0m : finalTotal,
+                IsPaid = isPaid,
             };
 
             await _db.Invoices.AddAsync(invoice);
@@ -100,6 +108,11 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
 
             sale.Invoice = invoice;
             sale.Customer = customer;
+
+            foreach (var item in sale.Items)
+            {
+                item.Part = await _db.Parts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.PartId);
+            }
 
             _logger.LogInformation(
                 "Sale {SaleId} created for customer {CustomerId} ({CustomerName}), original {OriginalTotal}, discount {Discount}, final {FinalTotal}, line items {ItemCount}",
@@ -118,12 +131,25 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
         {
             var sales = await _db.Sales
                 .Include(s => s.Items)
+                    .ThenInclude(i => i.Part)
                 .Include(s => s.Invoice)
                 .Include(s => s.Customer)
                 .OrderByDescending(s => s.Id)
                 .ToListAsync();
 
             return sales.Select(MapToResponse).ToList();
+        }
+
+        public async Task<SaleResponseDto?> GetSaleByIdAsync(int saleId)
+        {
+            var sale = await _db.Sales
+                .Include(s => s.Items)
+                    .ThenInclude(i => i.Part)
+                .Include(s => s.Invoice)
+                .Include(s => s.Customer)
+                .FirstOrDefaultAsync(s => s.Id == saleId);
+
+            return sale == null ? null : MapToResponse(sale);
         }
 
         private async Task<string> GenerateUniqueInvoiceNumberAsync(int saleId)
@@ -153,7 +179,12 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 {
                     Id = invoice.Id,
                     InvoiceNumber = invoice.InvoiceNumber,
-                    CreatedDate = invoice.CreatedDate
+                    CreatedDate = invoice.CreatedDate,
+                    DueDate = invoice.DueDate,
+                    PaymentStatus = invoice.PaymentStatus,
+                    PaidAmount = invoice.PaidAmount,
+                    BalanceAmount = invoice.BalanceAmount,
+                    IsPaid = invoice.IsPaid,
                 };
             }
 
@@ -162,6 +193,9 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 Id = sale.Id,
                 CustomerId = sale.CustomerId,
                 CustomerName = sale.Customer?.Name ?? string.Empty,
+                CustomerEmail = sale.Customer?.Email ?? string.Empty,
+                CustomerPhone = sale.Customer?.Phone ?? string.Empty,
+                CustomerAddress = sale.Customer?.Address ?? string.Empty,
                 Date = sale.Date,
                 TotalAmount = sale.OriginalTotalAmount,
                 Discount = sale.DiscountAmount,
@@ -169,8 +203,9 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 Items = sale.Items.Select(i => new SaleItemResponseDto
                 {
                     PartId = i.PartId,
+                    PartName = i.Part?.Name ?? $"Part #{i.PartId}",
                     Quantity = i.Quantity,
-                    Price = i.Price
+                    Price = i.Price,
                 }).ToList(),
                 InvoiceId = invoice?.Id ?? 0,
                 InvoiceNumber = invoice?.InvoiceNumber ?? string.Empty,
@@ -202,9 +237,10 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 ? customEmail.Trim() 
                 : sale.Customer.Email;
 
-            if (string.IsNullOrWhiteSpace(emailToSend) || emailToSend.EndsWith("@partshub.local", StringComparison.OrdinalIgnoreCase))
+            if (!EmailValidator.CanSendTo(emailToSend))
             {
-                throw new InvalidOperationException("Please provide a valid customer email address.");
+                throw new InvalidOperationException(
+                    "A valid customer email is required. Update the customer profile or provide an email when sending.");
             }
 
             // Optional: update customer email in DB if a custom one is supplied
@@ -318,7 +354,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             {
                 htmlBody += $@"
                 <div class='totals-row' style='color: #16a34a;'>
-                    <span>Loyalty Discount:</span>
+                    <span>Loyalty Discount (10% on orders over $5,000):</span>
                     <strong>-${sale.DiscountAmount:F2}</strong>
                 </div>";
             }
@@ -331,7 +367,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
             </div>
         </div>
         <div class='footer'>
-            <p><strong>Invincible Vehicle Parts Hub</strong></p>
+            <p><strong>Vehicle Management System</strong></p>
             <p>123 Gearbox Lane, Auto City | Phone: +1 (555) 0199-283</p>
             <p>Thank you for your business!</p>
         </div>

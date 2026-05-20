@@ -7,6 +7,7 @@ import {
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/solid'
+import { APP_NAME, APP_TAGLINE } from '../../lib/appBranding'
 import { isAdmin } from '../../lib/auth'
 
 export type TabId = 'home' | 'parts' | 'customers' | 'sales' | 'reports' | 'staff'
@@ -33,10 +34,10 @@ export function Sidebar({ active, onSelect, onLogout }: Props) {
   const items = allItems.filter((i) => !i.adminOnly || showAdmin)
 
   return (
-    <aside className="flex max-h-[min(100dvh,100vh)] min-h-0 w-full shrink-0 flex-col border-b border-slate-800/60 bg-slate-950 text-slate-200 sm:max-h-none md:h-screen md:max-h-screen md:w-64 md:border-b-0 md:border-r">
+    <aside className="flex h-full min-h-[min(100dvh,100vh)] w-full flex-col border-b border-slate-800/60 bg-slate-950 text-slate-200 md:w-64 md:border-b-0 md:border-r">
       <div className="border-b border-slate-800/60 px-4 py-5 sm:px-5 sm:py-6">
-        <p className="text-lg font-bold tracking-tight text-white">PartsHub</p>
-        <p className="mt-1 text-xs text-slate-500">Vehicle Parts Management</p>
+        <p className="text-lg font-bold tracking-tight text-white">{APP_NAME}</p>
+        <p className="mt-1 text-xs text-slate-500">{APP_TAGLINE}</p>
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3" aria-label="Main">

@@ -140,6 +140,7 @@ namespace VehiclePartsManagementSystem.Infrastructure.Services
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Email, emailClaim),
                 new(ClaimTypes.Role, user.Role.ToString()),
+                new("role", user.Role.ToString()),
                 new("username", nameClaim)
             };
 

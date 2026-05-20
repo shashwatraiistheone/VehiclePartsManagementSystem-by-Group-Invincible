@@ -64,7 +64,7 @@ export default function Register(props) {
           <div className="auth-brand-mark" aria-hidden>
             PH
           </div>
-          <h1>PartsHub</h1>
+          <h1>Vehicle Management System</h1>
           <p>Create a staff or admin account</p>
         </div>
         <h2>Register</h2>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehiclePartsManagementSystem.Domain.Entities;
@@ -7,6 +8,7 @@ namespace VehiclePartsManagementSystem.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class VendorController : ControllerBase
     {
         private readonly AppDbContext _context;

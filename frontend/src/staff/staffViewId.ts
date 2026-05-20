@@ -9,3 +9,4 @@ export type StaffViewId =
   | 'customer-reports'
   | 'appointments'
   | 'part-requests'
+  | 'community-reviews'

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { fetchCustomerHistory, sendInvoiceEmail } from '../services/customerApi'
 
 export default function CustomerHistory(props) {
   const customerId = props.customerId
@@ -34,20 +35,7 @@ export default function CustomerHistory(props) {
     setInvoiceSuccesses((prev) => ({ ...prev, [saleId]: null }))
 
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL
-      const res = await fetch(`${apiBase}/api/sales/${saleId}/send-invoice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-
-      const text = await res.text()
-      const json = text ? JSON.parse(text) : null
-
-      if (!res.ok) {
-        throw new Error(json?.message || 'Failed to send invoice email.')
-      }
-
+      await sendInvoiceEmail(saleId, email)
       setInvoiceSuccesses((prev) => ({ ...prev, [saleId]: 'Invoice email sent successfully!' }))
 
       setData((prev) => {
@@ -77,18 +65,8 @@ export default function CustomerHistory(props) {
       setLoading(true)
       setError(null)
       try {
-        const apiBase = import.meta.env.VITE_API_BASE_URL
-        const res = await fetch(`${apiBase}/api/customer/${customerId}/history`, {
-          signal: ctrl.signal,
-        })
-
-        const text = await res.text()
-        const json = text ? JSON.parse(text) : null
-
-        if (!res.ok) {
-          throw new Error(json?.message || json?.title || 'Failed to load history')
-        }
-
+        const json = await fetchCustomerHistory(customerId)
+        if (ctrl.signal.aborted) return
         setData(json)
 
         if (json && json.purchases) {
